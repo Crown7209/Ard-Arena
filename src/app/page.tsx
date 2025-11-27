@@ -1,21 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import {
+  Loader2,
+  Gamepad2,
+  Coins,
+  Trophy,
+  Swords,
+  LogIn,
+  PersonStanding,
+} from "lucide-react";
 import { roomService } from "@/services/roomService";
-import { useDeviceType } from "@/hooks/useDeviceType";
-import { Loader2, MonitorPlay, Smartphone, Gamepad2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
-export default function Home() {
+const buttonBase =
+  "inline-flex items-center justify-center gap-3 h-16 px-8 rounded-2xl text-lg font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0";
+const outlineButton = `${buttonBase} border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:ring-white/40`;
+const accentButton = `${buttonBase} bg-[#64ccc5] text-slate-950 shadow-[0_0_35px_rgba(100,204,197,0.45)] hover:bg-[#56b4ae] focus-visible:ring-[#64ccc5]`;
+
+const Home = () => {
   const router = useRouter();
-  const { isMobile } = useDeviceType();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setProfileMenuOpen(false);
+    }
+  }, [user]);
 
   const handleHostGame = async () => {
     setLoading(true);
@@ -37,78 +72,144 @@ export default function Home() {
     }
   };
 
-  if (!mounted) return null; // Prevent hydration mismatch
+  const handleProfileAction = () => {
+    if (authLoading) return;
+    if (user) {
+      setProfileMenuOpen((prev) => !prev);
+    } else {
+      router.push("/login");
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setProfileMenuOpen(false);
+  };
+
+  if (!mounted) return null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-white p-4 overflow-hidden relative">
-      {/* Background Effects */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <Image
+        src="/images/fighting-grid.svg"
+        alt="Pixelated neon grid with Fighting text"
+        fill
+        priority
+        className="object-cover"
+      />
+      <div className="absolute inset-0 bg-black/75" />
 
-      <div className="max-w-4xl w-full text-center space-y-12 z-10">
-        <div className="space-y-6 animate-fade-in">
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-indigo-400 to-purple-400 drop-shadow-lg">
-            ARD ARENA
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-400 font-light tracking-wide">
-            The Ultimate Browser Party Game
-          </p>
-        </div>
-
-        <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
-          {!isMobile ? (
-            // Desktop View
-            <div className="w-full space-y-4">
-              <Button
-                onClick={handleHostGame}
-                disabled={loading}
-                className="w-full py-6 text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transform hover:scale-105 transition-all shadow-xl shadow-indigo-900/20 border-0"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                    Creating Room...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-3">
-                    <MonitorPlay className="w-8 h-8" />
-                    START PLAY
-                  </div>
-                )}
-              </Button>
-              <p className="text-sm text-gray-500">
-                Click to host a game on this screen
+      <div className="relative z-10 flex min-h-screen flex-col justify-between gap-8 px-4 py-6 md:px-12 md:py-10">
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4 text-left">
+            <button
+              type="button"
+              className={`${outlineButton} h-16 px-6 text-base uppercase tracking-[0.3em]`}
+            >
+              <Swords className="h-4 w-4 text-[#64ccc5]" />
+              Fight Game
+            </button>
+            <div>
+              <p className="text-xs uppercase tracking-[0.6em] text-white/60">
+                ARD ARENA
+              </p>
+              <p className="text-3xl font-black text-[#e0fdfb] drop-shadow-[0_0_15px_rgba(100,204,197,0.5)]">
+                Digital Battle Lobby
               </p>
             </div>
-          ) : (
-            // Mobile View
-            <div className="w-full space-y-4">
-              <Button
-                onClick={() => router.push("/game?mode=standalone")}
-                className="w-full py-6 text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 shadow-lg shadow-green-900/20 border-0"
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <Gamepad2 className="w-6 h-6" />
-                  START PLAY
-                </div>
-              </Button>
+          </div>
 
-              <Button
-                onClick={() => router.push("/join")}
-                variant="outline"
-                className="w-full py-6 text-xl font-bold border-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white hover:border-gray-600"
-              >
-                <div className="flex items-center justify-center gap-3">
-                  <Smartphone className="w-6 h-6" />
-                  JOIN GAME
-                </div>
-              </Button>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex h-16 items-center gap-4 rounded-2xl border border-white/30 bg-black/60 px-6 backdrop-blur">
+              <Coins className="h-6 w-6 text-[#64ccc5]" />
+              <div className="flex flex-col leading-none">
+                <p className="text-xs uppercase tracking-[0.4em] text-white/60">
+                  Coins
+                </p>
+                <p className="text-2xl font-bold text-white">100</p>
+              </div>
             </div>
-          )}
-        </div>
+            <button
+              type="button"
+              className={outlineButton}
+              onClick={() => router.push("/leaderboard")}
+            >
+              <Trophy className="h-5 w-5 text-[#64ccc5]" />
+              Leaderboard
+            </button>
+            <div className="relative" ref={profileMenuRef}>
+              <button
+                type="button"
+                aria-label={user ? "Open profile menu" : "Go to login"}
+                className={`${outlineButton} h-16 w-16 px-0`}
+                onClick={handleProfileAction}
+                disabled={authLoading}
+              >
+                {user ? (
+                  <PersonStanding
+                    className="h-7 w-7 text-[#64ccc5]"
+                    color="#64ccc5"
+                    strokeWidth={2}
+                  />
+                ) : (
+                  <LogIn
+                    className="h-7 w-7 text-[#64ccc5]"
+                    color="#64ccc5"
+                    strokeWidth={2}
+                  />
+                )}
+              </button>
+
+              {user && profileMenuOpen && (
+                <div className="absolute right-0 mt-3 min-w-[220px] rounded-2xl border border-white/20 bg-black/70 p-4 text-left text-sm shadow-[0_10px_30px_rgba(0,0,0,0.45)] backdrop-blur">
+                  <p className="text-xs uppercase tracking-[0.4em] text-white/50">
+                    Signed in
+                  </p>
+                  <p className="mt-1 truncate text-base font-semibold">
+                    {user.email}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleSignOut}
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/30 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="flex flex-1 flex-col items-center justify-center text-center">
+          <p className="text-sm uppercase tracking-[0.7em] text-white/60">
+            Get Ready
+          </p>
+        </main>
+
+        <footer className="flex flex-wrap items-center justify-center gap-4">
+          <button
+            type="button"
+            className={`${accentButton} h-20 min-w-[18rem] px-14 text-2xl`}
+            disabled={loading}
+            onClick={handleHostGame}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Building Room...
+              </>
+            ) : (
+              <>
+                <Gamepad2 className="h-6 w-6" />
+                Play
+              </>
+            )}
+          </button>
+        </footer>
       </div>
     </div>
   );
-}
+};
+
+export default Home;
