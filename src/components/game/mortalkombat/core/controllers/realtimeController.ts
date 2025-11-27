@@ -8,6 +8,7 @@ import {
   type GameMove,
   type GamePosition,
   type GameLife,
+  type GameState,
 } from "@/services/gameService";
 
 export interface RealtimeGameOptions extends GameOptions {
@@ -45,6 +46,16 @@ export class RealtimeController extends BaseController {
     this.startSyncIntervals();
   }
 
+  getRealtimeService(): GameRealtimeService {
+    return this.realtimeService;
+  }
+
+  private gameStateCallback?: (data: GameState) => void;
+
+  setGameStateCallback(callback: (data: GameState) => void): void {
+    this.gameStateCallback = callback;
+  }
+
   private setupRealtimeListeners(): void {
     const opponentIndex = this.playerIndex === 0 ? 1 : 0;
     const opponent = this.fighters[opponentIndex];
@@ -60,6 +71,12 @@ export class RealtimeController extends BaseController {
       },
       onLife: (data: GameLife) => {
         opponent.setLife(data.life);
+      },
+      onGameState: (data: GameState) => {
+        // Forward game state updates to the callback
+        if (this.gameStateCallback) {
+          this.gameStateCallback(data);
+        }
       },
     });
   }
@@ -110,25 +127,25 @@ export class RealtimeController extends BaseController {
   private startSyncIntervals(): void {
     const player = this.fighters[this.playerIndex];
 
-    // Sync position every 500ms
+    // Sync position every 50ms for instant responsiveness (no delay)
     setInterval(() => {
       if (!player.isJumping()) {
         const now = Date.now();
-        if (now - this.lastPositionUpdate > 450) {
+        if (now - this.lastPositionUpdate > 40) {
           this.realtimeService.sendPosition(player.getX(), player.getY());
           this.lastPositionUpdate = now;
         }
       }
-    }, 500);
+    }, 50);
 
-    // Sync life every 2 seconds
+    // Sync life every 1 second (faster updates)
     setInterval(() => {
       const now = Date.now();
-      if (now - this.lastLifeUpdate > 1900) {
+      if (now - this.lastLifeUpdate > 900) {
         this.realtimeService.sendLife(player.getLife());
         this.lastLifeUpdate = now;
       }
-    }, 2000);
+    }, 1000);
   }
 
   private getMove(
@@ -214,8 +231,10 @@ export class RealtimeController extends BaseController {
   private moveFighter(fighter: Fighter, move: MoveType | null): void {
     if (move) {
       fighter.setMove(move);
-      // Broadcast move to other players (MoveType is already a string)
+      // Broadcast move immediately with no delay
       this.realtimeService.sendMove(move);
+      // Also sync position immediately when move changes for instant response
+      this.realtimeService.sendPosition(fighter.getX(), fighter.getY());
     }
   }
 

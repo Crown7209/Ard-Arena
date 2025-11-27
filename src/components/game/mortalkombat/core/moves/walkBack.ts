@@ -9,7 +9,7 @@ export class WalkBack extends CycleMove {
   }
 
   protected _action(): void {
-    this.owner.setX(this.owner.getX() - 10);
+    this.owner.setX(this.owner.getX() - 20);
     this.owner.setY(CONFIG.PLAYER_TOP);
   }
 }

@@ -51,22 +51,39 @@ export abstract class Move {
 
   init(callback: () => void): void {
     let loaded = 0;
+    const total = this.totalSteps * 2;
     const o = { LEFT: 'left' as Orientation, RIGHT: 'right' as Orientation };
     this.steps = { left: [], right: [] };
     
+    // Preload all images in parallel for faster loading
     for (let i = 0; i < this.totalSteps; i += 1) {
       for (const orientationKey in o) {
         const orientation = o[orientationKey as keyof typeof o];
         const img = document.createElement('img');
+        // Set loading strategy for faster loading
+        img.loading = 'eager' as any;
         img.onload = () => {
           loaded += 1;
-          if (loaded === this.totalSteps * 2) {
+          if (loaded === total) {
             callback();
           }
         };
+        img.onerror = () => {
+          // Continue even if some images fail to load
+          loaded += 1;
+          if (loaded === total) {
+            callback();
+          }
+        };
+        // Start loading immediately
         img.src = this.getImageUrl(i, orientation);
         this.steps[orientation].push(img);
       }
+    }
+    
+    // If no images to load, call callback immediately
+    if (total === 0) {
+      callback();
     }
     
     if (typeof (this as any).addHandlers === 'function') {

@@ -44,7 +44,7 @@ export class Fighter {
   private life: number = 100;
   private orientation: OrientationType;
   private width: number = 30;
-  private height: number = 60;
+  private height: number = 120;
   private locked: boolean = false;
   private position: { x: number; y: number };
   private currentState?: HTMLImageElement;
@@ -204,6 +204,15 @@ export class Fighter {
 
   setState(state: HTMLImageElement): void {
     this.currentState = state;
+    // Update default width/height from first sprite to ensure collision detection uses correct dimensions
+    if (state && state.width && state.height) {
+      // Only update if current defaults are the original small values
+      // This ensures we capture the actual sprite dimensions for collision detection
+      if (this.width === 30 || this.height === 120) {
+        this.width = state.width;
+        this.height = state.height;
+      }
+    }
   }
 
   getState(): HTMLImageElement | undefined {

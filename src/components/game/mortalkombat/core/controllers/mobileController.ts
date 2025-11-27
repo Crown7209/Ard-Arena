@@ -49,8 +49,8 @@ export class MobileController {
 
     // Try to lock orientation to landscape
     const lockOrientation = () => {
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(() => {
+      if (screen.orientation && 'lock' in screen.orientation && typeof (screen.orientation as any).lock === 'function') {
+        (screen.orientation as any).lock('landscape').catch(() => {
           // Orientation lock may fail in some browsers, ignore silently
         });
       } else if ((screen as any).lockOrientation) {

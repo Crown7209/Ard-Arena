@@ -130,35 +130,84 @@ export abstract class BaseController {
     opponentStand: MoveType
   ): boolean {
     if (opponentStand === MoveType.SQUAT) {
-      if (attack !== MoveType.LOW_PUNCH && attack !== MoveType.LOW_KICK) {
+      // Allow low attacks and crouched high kick to hit crouched opponents
+      if (
+        attack !== MoveType.LOW_PUNCH &&
+        attack !== MoveType.LOW_KICK &&
+        attack !== MoveType.SQUAT_LOW_KICK &&
+        attack !== MoveType.SQUAT_LOW_PUNCH &&
+        attack !== MoveType.SQUAT_HIGH_KICK
+      ) {
         return false;
       }
+    }
+    // Allow crouched high kick to hit standing opponents (head level)
+    if (attack === MoveType.SQUAT_HIGH_KICK && opponentStand !== MoveType.SQUAT) {
+      return true;
     }
     return true;
   }
 
   protected requiredDistance(attacker: Fighter, opponent: Fighter): boolean {
-    const fMiddle = attacker.getX() + attacker.getWidth() / 2;
-    const oMiddle = opponent.getX() + opponent.getWidth() / 2;
-    const distance = Math.abs(fMiddle - oMiddle);
+    // Get actual sprite dimensions for accurate collision detection
+    const attackerState = attacker.getState();
+    const opponentState = opponent.getState();
+    
+    // Use sprite dimensions if available, otherwise use fallback dimensions
+    const attackerWidth = attackerState?.width || attacker.getWidth();
+    const attackerHeight = attackerState?.height || attacker.getVisibleHeight();
+    const opponentWidth = opponentState?.width || opponent.getWidth();
+    const opponentHeight = opponentState?.height || opponent.getVisibleHeight();
+    
+    // Calculate horizontal positions
+    const attackerLeft = attacker.getX();
+    const attackerRight = attacker.getX() + attackerWidth;
+    const attackerCenterX = attacker.getX() + attackerWidth / 2;
+    const opponentLeft = opponent.getX();
+    const opponentRight = opponent.getX() + opponentWidth;
+    const opponentCenterX = opponent.getX() + opponentWidth / 2;
+    
+    // Calculate horizontal distance between character centers
+    const horizontalDistance = Math.abs(attackerCenterX - opponentCenterX);
+    
+    // Vertical collision detection - check if heights overlap (top/bottom sections sensing)
+    const attackerTop = attacker.getY();
+    const attackerBottom = attacker.getY() + attackerHeight;
+    const opponentTop = opponent.getY();
+    const opponentBottom = opponent.getY() + opponentHeight;
+    
+    // Check vertical overlap (heights matching - top/bottom sections must overlap)
+    const verticalOverlap = !(attackerBottom < opponentTop || attackerTop > opponentBottom);
+    
+    // Default attack range: 200px horizontal distance with vertical overlap
+    const ATTACK_RANGE = 200;
+    
+    // If within 200px horizontally and vertical overlap exists, allow hit
+    if (horizontalDistance <= ATTACK_RANGE && verticalOverlap) {
+      return true;
+    }
+    
+    // For jump attacks, allow slightly larger vertical range but same horizontal
     const type = attacker.getMove().type;
-    const width = opponent.getWidth();
-
-    if (distance <= width) {
-      return true;
-    }
-    if (type === MoveType.UPPERCUT && distance <= width * 1.2) {
-      return true;
-    }
     if (
-      (type === MoveType.BACKWARD_JUMP_KICK ||
-        type === MoveType.FORWARD_JUMP_KICK ||
-        type === MoveType.FORWARD_JUMP_PUNCH ||
-        type === MoveType.BACKWARD_JUMP_PUNCH) &&
-      distance <= width * 1.5
+      type === MoveType.BACKWARD_JUMP_KICK ||
+      type === MoveType.FORWARD_JUMP_KICK ||
+      type === MoveType.FORWARD_JUMP_PUNCH ||
+      type === MoveType.BACKWARD_JUMP_PUNCH
     ) {
-      return true;
+      // Allow hit if within 200px horizontally and within 30 pixels vertically
+      const verticalDistance = Math.min(
+        Math.abs(attackerBottom - opponentTop),
+        Math.abs(attackerTop - opponentBottom)
+      );
+      return horizontalDistance <= ATTACK_RANGE && verticalDistance <= 30;
     }
+    
+    // For uppercut, use same 200px horizontal range
+    if (type === MoveType.UPPERCUT) {
+      return horizontalDistance <= ATTACK_RANGE && verticalOverlap;
+    }
+    
     return false;
   }
 

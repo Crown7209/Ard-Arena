@@ -20,6 +20,17 @@ export interface GameLife {
   timestamp: number;
 }
 
+export interface GameState {
+  playerId: string;
+  gameState: "playing" | "round-winner" | "final-winner";
+  roundWinner?: number;
+  finalWinner?: number;
+  player1Wins: number;
+  player2Wins: number;
+  currentRound: number;
+  timestamp: number;
+}
+
 export class GameRealtimeService {
   private channel: RealtimeChannel | null = null;
   private roomId: string;
@@ -37,6 +48,7 @@ export class GameRealtimeService {
     onMove?: (data: GameMove) => void;
     onPosition?: (data: GamePosition) => void;
     onLife?: (data: GameLife) => void;
+    onGameState?: (data: GameState) => void;
   }) {
     this.channel = supabase.channel(`game:${this.roomId}`, {
       config: {
@@ -71,15 +83,23 @@ export class GameRealtimeService {
       });
     }
 
+    // Listen for game state updates (round winner, final winner, wins, etc.)
+    if (callbacks.onGameState) {
+      this.channel.on("broadcast", { event: "gameState" }, ({ payload }) => {
+        callbacks.onGameState!(payload as GameState);
+      });
+    }
+
     this.channel.subscribe();
   }
 
   /**
-   * Broadcast a move to other players
+   * Broadcast a move to other players (fire-and-forget for zero delay)
    */
-  async sendMove(move: string) {
+  sendMove(move: string) {
     if (!this.channel) return;
-    await this.channel.send({
+    // Fire and forget - don't await to avoid any delay
+    this.channel.send({
       type: "broadcast",
       event: "move",
       payload: {
@@ -87,15 +107,18 @@ export class GameRealtimeService {
         move,
         timestamp: Date.now(),
       } as GameMove,
+    }).catch(() => {
+      // Silently ignore errors to avoid blocking
     });
   }
 
   /**
-   * Broadcast position update
+   * Broadcast position update (fire-and-forget for zero delay)
    */
-  async sendPosition(x: number, y: number) {
+  sendPosition(x: number, y: number) {
     if (!this.channel) return;
-    await this.channel.send({
+    // Fire and forget - don't await to avoid any delay
+    this.channel.send({
       type: "broadcast",
       event: "position",
       payload: {
@@ -104,15 +127,18 @@ export class GameRealtimeService {
         y,
         timestamp: Date.now(),
       } as GamePosition,
+    }).catch(() => {
+      // Silently ignore errors to avoid blocking
     });
   }
 
   /**
-   * Broadcast life update
+   * Broadcast life update (fire-and-forget for zero delay)
    */
-  async sendLife(life: number) {
+  sendLife(life: number) {
     if (!this.channel) return;
-    await this.channel.send({
+    // Fire and forget - don't await to avoid any delay
+    this.channel.send({
       type: "broadcast",
       event: "life",
       payload: {
@@ -120,6 +146,34 @@ export class GameRealtimeService {
         life,
         timestamp: Date.now(),
       } as GameLife,
+    }).catch(() => {
+      // Silently ignore errors to avoid blocking
+    });
+  }
+
+  /**
+   * Broadcast game state update (round winner, final winner, wins, round number)
+   */
+  sendGameState(gameState: {
+    gameState: "playing" | "round-winner" | "final-winner";
+    roundWinner?: number;
+    finalWinner?: number;
+    player1Wins: number;
+    player2Wins: number;
+    currentRound: number;
+  }) {
+    if (!this.channel) return;
+    // Fire and forget - don't await to avoid any delay
+    this.channel.send({
+      type: "broadcast",
+      event: "gameState",
+      payload: {
+        playerId: this.playerId,
+        ...gameState,
+        timestamp: Date.now(),
+      } as GameState,
+    }).catch(() => {
+      // Silently ignore errors to avoid blocking
     });
   }
 

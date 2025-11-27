@@ -31,11 +31,12 @@ export class ForwardJump extends Move {
 
   protected _action(): void {
     if (this.currentStep > (this.totalSteps - 1) / 2) {
-      this.owner.setY(this.owner.getY() + 26);
-      this.owner.setX(this.owner.getX() + 23);
+      this.owner.setY(this.owner.getY() + 52);
+      this.owner.setX(this.owner.getX() + 46);
     } else {
-      this.owner.setY(this.owner.getY() - 26);
-      this.owner.setX(this.owner.getX() + 23);
+      this.owner.setY(this.owner.getY() - 52);
+      this.owner.setX(this.owner.getX() + 46);
     }
   }
 }
+

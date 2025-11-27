@@ -1,24 +1,110 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { start, reset } from "@/components/game/mortalkombat/game";
-import { Loader2 } from "lucide-react";
+import { start, reset, getGame } from "@/components/game/mortalkombat/game";
+import { Loader2, RotateCcw, Home } from "lucide-react";
 import { roomService } from "@/services/roomService";
 import { playerService } from "@/services/playerService";
 import { usePlayerStore } from "@/store/playerStore";
+import { MoveType } from "@/components/game/mortalkombat/core/moveTypes";
+import { CONFIG } from "@/components/game/mortalkombat/core/config";
+
+type GameState = "playing" | "round-winner" | "final-winner";
 
 export default function GamePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+  const gameOptionsRef = useRef<any>(null);
 
   const [gameReady, setGameReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gameState, setGameState] = useState<GameState>("playing");
+  const [currentRound, setCurrentRound] = useState(1);
+  const [player1Wins, setPlayer1Wins] = useState(0);
+  const [player2Wins, setPlayer2Wins] = useState(0);
+  const [roundWinner, setRoundWinner] = useState<number | null>(null);
+  const [finalWinner, setFinalWinner] = useState<number | null>(null);
 
   const { currentPlayerId } = usePlayerStore();
+
+  const roundRef = useRef(1);
+  const player1WinsRef = useRef(0);
+  const player2WinsRef = useRef(0);
+
+  const handleRoundEnd = useCallback((loser: any) => {
+    const game = getGame();
+    if (!game || game.fighters.length < 2) return;
+
+    // Stop the timer when winner is declared
+    if (game.arena) {
+      (game.arena as any).stopTimer();
+    }
+
+    const fighter1 = game.fighters[0];
+    const fighter2 = game.fighters[1];
+    
+    // Determine winner (the one who didn't lose)
+    // loser is the Fighter object that died
+    const isFighter1Loser = loser === fighter1 || loser.getName() === fighter1.getName();
+    const winnerIndex = isFighter1Loser ? 2 : 1; // Player 1 or Player 2
+
+    setRoundWinner(winnerIndex);
+
+    // Update win counts
+    if (winnerIndex === 1) {
+      player1WinsRef.current += 1;
+      setPlayer1Wins(player1WinsRef.current);
+    } else {
+      player2WinsRef.current += 1;
+      setPlayer2Wins(player2WinsRef.current);
+    }
+
+    // Update wins in arena for canvas display
+    if (game.arena) {
+      (game.arena as any).setWins(player1WinsRef.current, player2WinsRef.current);
+    }
+
+    // Check if game is over (3 rounds completed or someone has 2 wins)
+    const currentRoundNum = roundRef.current;
+    const newPlayer1Wins = player1WinsRef.current;
+    const newPlayer2Wins = player2WinsRef.current;
+
+    let newGameState: "playing" | "round-winner" | "final-winner";
+    let finalWinnerIndex: number | undefined;
+    let roundWinnerIndex: number | undefined;
+
+    if (currentRoundNum >= 3 || newPlayer1Wins >= 2 || newPlayer2Wins >= 2) {
+      // Game over - show final winner
+      finalWinnerIndex = newPlayer1Wins > newPlayer2Wins ? 1 : 2;
+      setFinalWinner(finalWinnerIndex);
+      newGameState = "final-winner";
+    } else {
+      // Show round winner, then continue to next round
+      roundWinnerIndex = winnerIndex;
+      newGameState = "round-winner";
+    }
+
+    setGameState(newGameState);
+
+    // Sync game state to other players (for mobile updates)
+    if ((game as any).getRealtimeService) {
+      const realtimeService = (game as any).getRealtimeService();
+      if (realtimeService) {
+        realtimeService.sendGameState({
+          gameState: newGameState,
+          roundWinner: roundWinnerIndex,
+          finalWinner: finalWinnerIndex,
+          player1Wins: newPlayer1Wins,
+          player2Wins: newPlayer2Wins,
+          currentRound: currentRoundNum,
+        });
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const initGame = async () => {
@@ -70,25 +156,69 @@ export default function GamePage() {
         if (!containerRef.current || initialized.current) return;
         initialized.current = true;
 
-        start({
+        const options = {
           arena: {
             container: containerRef.current!,
             arena: 0,
           },
           fighters: [{ name: "subzero" }, { name: "kano" }],
-          gameType: "realtime",
+          gameType: "realtime" as const,
           roomId: room.id,
           playerId: playerId,
           playerIndex: playerIndex,
           callbacks: {
-            "game-end": (winner) => {
-              console.log("Game Over", winner);
-              alert(`Game Over! Winner: ${winner.getName()}`);
-              setTimeout(() => router.push("/"), 2000);
-            },
+            "game-end": handleRoundEnd,
           },
-        }).ready(() => {
+        };
+
+        gameOptionsRef.current = options;
+
+        start(options).ready(() => {
+          // Initialize arena with current round and wins
+          const game = getGame();
+          if (game && game.arena) {
+            (game.arena as any).setRound(roundRef.current);
+            (game.arena as any).setWins(player1WinsRef.current, player2WinsRef.current);
+          }
+          
           setGameReady(true);
+          
+          // Setup game state listener for mobile sync
+          if (game && (game as any).getRealtimeService) {
+            const realtimeService = (game as any).getRealtimeService();
+            if (realtimeService && (game as any).setGameStateCallback) {
+              (game as any).setGameStateCallback((data: any) => {
+                // Update game state from remote player
+                setGameState(data.gameState);
+                if (data.roundWinner !== undefined) {
+                  setRoundWinner(data.roundWinner);
+                }
+                if (data.finalWinner !== undefined) {
+                  setFinalWinner(data.finalWinner);
+                }
+                setPlayer1Wins(data.player1Wins);
+                setPlayer2Wins(data.player2Wins);
+                setCurrentRound(data.currentRound);
+                roundRef.current = data.currentRound;
+                player1WinsRef.current = data.player1Wins;
+                player2WinsRef.current = data.player2Wins;
+                
+                // Update wins and round in arena for canvas display
+                if (game.arena) {
+                  (game.arena as any).setRound(data.currentRound);
+                  (game.arena as any).setWins(data.player1Wins, data.player2Wins);
+                  (game.arena as any).refresh(); // Refresh to show updated info
+                }
+                
+                // Stop timer if winner is declared
+                if (data.gameState === "round-winner" || data.gameState === "final-winner") {
+                  if (game.arena) {
+                    (game.arena as any).stopTimer();
+                  }
+                }
+              });
+            }
+          }
         });
       } catch (err: any) {
         console.error("Error initializing game:", err);
@@ -104,7 +234,96 @@ export default function GamePage() {
         initialized.current = false;
       }
     };
-  }, [router, searchParams, currentPlayerId]);
+  }, [router, searchParams, currentPlayerId, handleRoundEnd]);
+
+  const startNextRound = () => {
+    const game = getGame();
+    if (!game || !gameOptionsRef.current) return;
+
+    // Reset fighters - make sure they stand up
+    game.fighters.forEach((fighter) => {
+      fighter.setLife(100);
+      fighter.unlock();
+      // Stop any current move first
+      try {
+        fighter.getMove().stop();
+      } catch (e) {
+        // Ignore if no move set
+      }
+      // Set to stand position
+      fighter.setMove(MoveType.STAND);
+    });
+
+    // Reset positions to starting points (left and right sides)
+    game.fighters[0].setX(100);  // Player 1 on left
+    game.fighters[1].setX(940);  // Player 2 on right
+    
+    // Reset Y positions to ground level
+    game.fighters[0].setY(CONFIG.PLAYER_TOP);
+    game.fighters[1].setY(CONFIG.PLAYER_TOP);
+    
+    // Sync positions immediately
+    if ((game as any).getRealtimeService) {
+      const realtimeService = (game as any).getRealtimeService();
+      if (realtimeService) {
+        realtimeService.sendPosition(game.fighters[0].getX(), game.fighters[0].getY());
+        realtimeService.sendPosition(game.fighters[1].getX(), game.fighters[1].getY());
+      }
+    }
+
+    roundRef.current += 1;
+    setCurrentRound(roundRef.current);
+    setRoundWinner(null);
+    setGameState("playing");
+
+    // Set round number and wins, then restart countdown
+    if (game.arena) {
+      (game.arena as any).setRound(roundRef.current);
+      (game.arena as any).setWins(player1WinsRef.current, player2WinsRef.current);
+      (game.arena as any).startCountdown();
+    }
+    
+    // Sync game state update
+    if ((game as any).getRealtimeService) {
+      const realtimeService = (game as any).getRealtimeService();
+      if (realtimeService) {
+        realtimeService.sendGameState({
+          gameState: "playing",
+          player1Wins: player1WinsRef.current,
+          player2Wins: player2WinsRef.current,
+          currentRound: roundRef.current,
+        });
+      }
+    }
+  };
+
+  const restartGame = () => {
+    reset();
+    initialized.current = false;
+    roundRef.current = 1;
+    player1WinsRef.current = 0;
+    player2WinsRef.current = 0;
+    setCurrentRound(1);
+    setPlayer1Wins(0);
+    setPlayer2Wins(0);
+    setRoundWinner(null);
+    setFinalWinner(null);
+    setGameState("playing");
+    setGameReady(false);
+
+    // Reinitialize game
+    if (containerRef.current && gameOptionsRef.current) {
+      initialized.current = true;
+      start(gameOptionsRef.current).ready(() => {
+        setGameReady(true);
+      });
+    }
+  };
+
+  const goToLanding = () => {
+    reset();
+    router.push("/");
+  };
 
   if (error) {
     return (
@@ -129,11 +348,116 @@ export default function GamePage() {
   }
 
   return (
-    <div className="max-h-screen h-auto w-full flex flex-col items-center justify-center bg-gray-950 text-white">
+    <div className="h-screen w-full flex flex-col items-center justify-center bg-black text-white relative overflow-hidden">
+      {/* Round Winner Overlay - Fighting Game Style */}
+      {gameState === "round-winner" && roundWinner && (
+        <div className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/40">
+          <div className="relative bg-black/40 border-2 border-white/20 rounded-lg p-5 text-center max-w-sm w-full mx-4">
+            {/* Top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/15" />
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/15" />
+            
+            {/* Round Label */}
+            <div className="text-lg font-black mb-2 text-white/70 tracking-wider uppercase">
+              Round {currentRound}
+            </div>
+            
+            {/* Winner Announcement */}
+            <div className="text-2xl font-black mb-2 text-white tracking-wider uppercase">
+              PLAYER {roundWinner}
+            </div>
+            <div className="text-xl font-black mb-4 text-white/90 tracking-wider uppercase">
+              WINS
+            </div>
+            
+            {/* Score Display */}
+            <div className="mb-4 space-y-1">
+              <div className="text-xs font-bold text-white/50 tracking-wider uppercase mb-1">
+                Score
+              </div>
+              <div className="flex justify-center items-center gap-4 text-base font-black">
+                <div className={`${roundWinner === 1 ? 'text-white' : 'text-white/30'}`}>
+                  P1: <span className="text-lg">{player1Wins}</span>
+                </div>
+                <div className="text-white/15 text-sm">|</div>
+                <div className={`${roundWinner === 2 ? 'text-white' : 'text-white/30'}`}>
+                  P2: <span className="text-lg">{player2Wins}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Continue Button */}
+            <button
+              onClick={startNextRound}
+              className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 px-6 rounded-md border border-white/20 transition-all text-sm uppercase tracking-wider"
+            >
+              Next Round
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Final Winner Overlay - Fighting Game Style */}
+      {gameState === "final-winner" && finalWinner && (
+        <div className="fixed inset-0 z-[1001] flex items-center justify-center bg-black/40">
+          <div className="relative bg-black/40 border-2 border-white/30 rounded-lg p-6 text-center max-w-md w-full mx-4">
+            {/* Top accent bar */}
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/20" />
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20" />
+            
+            {/* Main Title */}
+            <div className="text-3xl font-black mb-4 text-white tracking-wider uppercase">
+              WINNER
+            </div>
+            
+            {/* Winner Announcement */}
+            <div className="text-2xl font-black mb-4 text-white tracking-wider uppercase">
+              PLAYER {finalWinner}
+            </div>
+            
+            {/* Score Display */}
+            <div className="mb-4 space-y-2">
+              <div className="text-xs font-bold text-white/60 tracking-wider uppercase mb-1">
+                Final Score
+              </div>
+              <div className="flex justify-center items-center gap-4 text-lg font-black">
+                <div className={`${finalWinner === 1 ? 'text-white' : 'text-white/40'}`}>
+                  P1: <span className="text-xl">{player1Wins}</span>
+                </div>
+                <div className="text-white/20 text-sm">|</div>
+                <div className={`${finalWinner === 2 ? 'text-white' : 'text-white/40'}`}>
+                  P2: <span className="text-xl">{player2Wins}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={restartGame}
+                className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-2.5 px-6 rounded-md border border-white/30 transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Fight Again
+              </button>
+              <button
+                onClick={goToLanding}
+                className="w-full bg-white/5 hover:bg-white/10 text-white/80 font-bold py-2.5 px-6 rounded-md border border-white/20 transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2"
+              >
+                <Home className="w-4 h-4" />
+                Main Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!gameReady && (
-        <div className="flex items-center gap-2 justify-center mt-2">
-          <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />
-          <span className="text-xs text-gray-500">Initializing game...</span>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-white" />
+            <span className="text-sm text-white">Loading...</span>
+          </div>
         </div>
       )}
 

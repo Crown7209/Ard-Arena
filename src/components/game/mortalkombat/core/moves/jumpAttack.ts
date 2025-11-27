@@ -11,13 +11,13 @@ export class JumpAttack extends Attack {
   constructor(owner: Fighter, type: MoveType, damage: number, isForward: boolean) {
     super(owner, type, 3, damage, 80);
     this.offset = {
-      x: -23,
-      y: 26
+      x: -46,
+      y: 52
     };
     if (isForward) {
       this.offset = {
-        x: 23,
-        y: 26
+        x: 46,
+        y: 52
       };
     }
     this.totalPics = 2;

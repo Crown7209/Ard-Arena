@@ -14,15 +14,15 @@ export class KnockDown extends Move {
       this.stop();
       this.owner.setMove(MoveType.ATTRACTIVE_STAND_UP);
     } else {
-      let xDisplacement = 25;
+      let xDisplacement = 50;
       if (this.owner.getOrientation() === Orientation.LEFT) {
         xDisplacement = -xDisplacement;
       }
       if (this.currentStep + 1 > (this.totalSteps - 1) / 2) {
-        this.owner.setY(this.owner.getY() + 10);
+        this.owner.setY(this.owner.getY() + 20);
         this.owner.setX(this.owner.getX() + xDisplacement);
       } else {
-        this.owner.setY(this.owner.getY() + 10);
+        this.owner.setY(this.owner.getY() + 20);
         this.owner.setX(this.owner.getX() + xDisplacement);
       }
     }

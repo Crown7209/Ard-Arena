@@ -28,6 +28,13 @@ export class Arena {
   private texture?: HTMLImageElement;
   private timeRemaining: number = 60;
   private timerInterval?: number;
+  private countdownState: "ready" | "counting" | "finished" = "ready";
+  private countdownValue: number = 5;
+  private countdownInterval?: number;
+  private readyStartTime?: number;
+  private currentRound: number = 1;
+  private player1Wins: number = 0;
+  private player2Wins: number = 0;
 
   constructor(options: ArenaOptions) {
     this.originalWidth = options.width || CONFIG.ARENA_WIDTH;
@@ -38,6 +45,10 @@ export class Arena {
     this.fighters = options.fighters;
     this.container = options.container;
     this.game = options.game;
+  }
+
+  public getContainer(): HTMLElement {
+    return this.container;
   }
 
   private getMobileScale(): number {
@@ -85,7 +96,7 @@ export class Arena {
 
     this.context = context;
     this.canvas = canvas;
-    this.startTimer();
+    this.startCountdown();
     this.refresh();
     this.setupResizeListener();
   }
@@ -159,6 +170,63 @@ export class Arena {
     });
   }
 
+  setRound(round: number): void {
+    this.currentRound = round;
+  }
+
+  setWins(player1Wins: number, player2Wins: number): void {
+    this.player1Wins = player1Wins;
+    this.player2Wins = player2Wins;
+  }
+
+  startCountdown(): void {
+    // Lock all fighters during countdown
+    this.fighters.forEach((fighter) => {
+      fighter.lock();
+    });
+
+    // Reset countdown state
+    this.countdownState = "ready";
+    this.countdownValue = 5;
+    this.readyStartTime = Date.now();
+
+    // Show "READY" or "ROUND X" for 5 seconds
+    const readyInterval = window.setInterval(() => {
+      const elapsed = Date.now() - (this.readyStartTime || 0);
+      if (elapsed >= 5000) {
+        clearInterval(readyInterval);
+        this.countdownState = "counting";
+        this.countdownValue = 5;
+        this.startCountdownNumbers();
+      }
+      this.refresh();
+    }, 100);
+  }
+
+  private startCountdownNumbers(): void {
+    this.countdownValue = 5;
+    this.refresh(); // Show 5 immediately
+    
+    this.countdownInterval = window.setInterval(() => {
+      this.countdownValue -= 1;
+      this.refresh();
+
+      if (this.countdownValue <= 0) {
+        this.countdownState = "finished";
+        if (this.countdownInterval !== undefined) {
+          clearInterval(this.countdownInterval);
+          this.countdownInterval = undefined;
+        }
+        // Unlock fighters and start the game timer
+        this.fighters.forEach((fighter) => {
+          fighter.unlock();
+        });
+        this.startTimer();
+        this.refresh();
+      }
+    }, 1000);
+  }
+
   startTimer(): void {
     this.timeRemaining = 60;
     this.timerInterval = window.setInterval(() => {
@@ -176,6 +244,13 @@ export class Arena {
     if (this.timerInterval !== undefined) {
       clearInterval(this.timerInterval);
       this.timerInterval = undefined;
+    }
+  }
+
+  stopCountdown(): void {
+    if (this.countdownInterval !== undefined) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = undefined;
     }
   }
 
@@ -212,6 +287,9 @@ export class Arena {
     fighter1.getMove().stop();
     fighter2.getMove().stop();
 
+    // Stop timer when time is up
+    this.stopTimer();
+
     // Winner does win animation, loser does fall
     winner.setMove(MoveType.WIN);
     loser.setMove(MoveType.FALL);
@@ -225,6 +303,7 @@ export class Arena {
 
   destroy(): void {
     this.stopTimer();
+    this.stopCountdown();
     if (this.canvas && this.container.contains(this.canvas)) {
       this.container.removeChild(this.canvas);
     }
@@ -310,6 +389,17 @@ export class Arena {
     this.drawArena();
     // Draw static health bar UI at the top
     this.drawStaticHealthBars();
+    
+    // Draw round indicator on canvas (only when countdown finished and game is playing)
+    if (this.countdownState === "finished") {
+      this.drawRoundIndicator();
+    }
+    
+    // Draw countdown if active
+    if (this.countdownState !== "finished") {
+      this.drawCountdown();
+    }
+    
     // Draw fighters (scaled up)
     const width = window.innerWidth;
     const minWidth = 375;
@@ -396,8 +486,53 @@ export class Arena {
       scaleRatio
     );
 
-    // Draw timer in the center, aligned with health bars
-    this.drawTimer(barY, mobileScale, scaleRatio);
+    // Draw timer in the center, aligned with health bars (only after countdown)
+    if (this.countdownState === "finished") {
+      this.drawTimer(barY, mobileScale, scaleRatio);
+    }
+  }
+
+  private drawRoundIndicator(): void {
+    if (!this.context || !this.canvas) return;
+
+    const width = window.innerWidth;
+    const minWidth = 375;
+    const maxMobileWidth = 1024;
+    const isMobile = width >= minWidth && width <= maxMobileWidth;
+    const scaleRatio = isMobile ? this.width / this.originalWidth : 1.0;
+
+    const centerX = this.canvas.width / 2;
+    const indicatorY = 120 * scaleRatio; // Position below timer
+
+    // Draw round text
+    const roundFontSize = Math.max(14 * scaleRatio, 10);
+    this.context.fillStyle = "rgba(255, 255, 255, 0.9)";
+    this.context.font = `bold ${roundFontSize}px Arial, sans-serif`;
+    this.context.textAlign = "center";
+    this.context.textBaseline = "top";
+    
+    // Add text shadow for readability
+    this.context.shadowBlur = 3 * scaleRatio;
+    this.context.shadowColor = "rgba(0, 0, 0, 0.8)";
+    this.context.shadowOffsetX = 1 * scaleRatio;
+    this.context.shadowOffsetY = 1 * scaleRatio;
+
+    this.context.fillText(`Round ${this.currentRound} of 3`, centerX, indicatorY);
+
+    // Draw score text below
+    const scoreFontSize = Math.max(11 * scaleRatio, 8);
+    this.context.fillStyle = "rgba(255, 255, 255, 0.7)";
+    this.context.font = `${scoreFontSize}px Arial, sans-serif`;
+    this.context.fillText(
+      `Player 1: ${this.player1Wins} | Player 2: ${this.player2Wins}`,
+      centerX,
+      indicatorY + (18 * scaleRatio)
+    );
+
+    // Reset shadow
+    this.context.shadowBlur = 0;
+    this.context.shadowOffsetX = 0;
+    this.context.shadowOffsetY = 0;
   }
 
   private drawTimer(
@@ -448,6 +583,79 @@ export class Arena {
     this.context.shadowOffsetY = 2 * scaleRatio;
 
     this.context.fillText(time.toString(), centerX, timerY);
+
+    // Reset shadow
+    this.context.shadowBlur = 0;
+    this.context.shadowOffsetX = 0;
+    this.context.shadowOffsetY = 0;
+  }
+
+  private drawCountdown(): void {
+    if (!this.context || !this.canvas) return;
+
+    const centerX = this.canvas.width / 2;
+    const centerY = this.canvas.height / 2;
+    const width = window.innerWidth;
+    const minWidth = 375;
+    const maxMobileWidth = 1024;
+    const isMobile = width >= minWidth && width <= maxMobileWidth;
+    const scaleRatio = isMobile ? this.width / this.originalWidth : 1.0;
+
+    // Determine text to display
+    let displayText = "";
+    if (this.countdownState === "ready") {
+      if (this.currentRound === 1) {
+        displayText = "READY";
+      } else if (this.currentRound === 2) {
+        displayText = "ROUND 2";
+      } else if (this.currentRound === 3) {
+        displayText = "ROUND 3";
+      } else {
+        displayText = `ROUND ${this.currentRound}`;
+      }
+    } else if (this.countdownState === "counting") {
+      displayText = this.countdownValue.toString();
+    }
+
+    // Calculate font size based on screen size
+    const baseFontSize = isMobile ? 120 : 80;
+    const fontSize = baseFontSize * scaleRatio;
+
+    // Draw semi-transparent background overlay
+    this.context.fillStyle = "rgba(0, 0, 0, 0.7)";
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Draw text with glow effect
+    this.context.shadowBlur = 30 * scaleRatio;
+    this.context.shadowColor = "#FFFFFF";
+    this.context.shadowOffsetX = 0;
+    this.context.shadowOffsetY = 0;
+
+    this.context.fillStyle = "#FFFFFF";
+    this.context.font = `bold ${fontSize}px Arial, sans-serif`;
+    this.context.textAlign = "center";
+    this.context.textBaseline = "middle";
+
+    // Add pulsing effect for "READY"
+    if (this.countdownState === "ready") {
+      const pulse = Math.sin(Date.now() / 200) * 0.1 + 1;
+      this.context.save();
+      this.context.translate(centerX, centerY);
+      this.context.scale(pulse, pulse);
+      this.context.translate(-centerX, -centerY);
+      this.context.fillText(displayText, centerX, centerY);
+      this.context.restore();
+    } else {
+      // Scale effect for countdown numbers (pulse when number changes)
+      const timeSinceStart = Date.now() % 1000;
+      const scale = 1.0 + Math.sin((timeSinceStart / 1000) * Math.PI) * 0.2;
+      this.context.save();
+      this.context.translate(centerX, centerY);
+      this.context.scale(scale, scale);
+      this.context.translate(-centerX, -centerY);
+      this.context.fillText(displayText, centerX, centerY);
+      this.context.restore();
+    }
 
     // Reset shadow
     this.context.shadowBlur = 0;

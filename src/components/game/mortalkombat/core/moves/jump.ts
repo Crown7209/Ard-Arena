@@ -31,15 +31,15 @@ export class Jump extends Move {
   protected _action(): void {
     if (!this.moveBack) {
       if (this.currentStep === 0) {
-        this.owner.setY(this.owner.getY() + 20);
+        this.owner.setY(this.owner.getY() + 40);
       } else {
-        this.owner.setY(this.owner.getY() - 20);
+        this.owner.setY(this.owner.getY() - 40);
       }
     } else {
       if (this.currentStep === this.totalSteps - 1) {
-        this.owner.setY(this.owner.getY() - 20);
+        this.owner.setY(this.owner.getY() - 40);
       } else {
-        this.owner.setY(this.owner.getY() + 25);
+        this.owner.setY(this.owner.getY() + 50);
       }
     }
   }

@@ -32,20 +32,23 @@ export class BasicController extends BaseController {
   }
 
   private initMobileController(): void {
-    if (this.arena && this.arena.container) {
-      this.mobileController = new MobileController(
-        this.arena.container,
-        (keyCode: number, pressed: boolean) => {
-          if (pressed) {
-            this.pressed[keyCode] = true;
-          } else {
-            delete this.pressed[keyCode];
+    if (this.arena) {
+      const container = this.arena.getContainer();
+      if (container) {
+        this.mobileController = new MobileController(
+          container,
+          (keyCode: number, pressed: boolean) => {
+            if (pressed) {
+              this.pressed[keyCode] = true;
+            } else {
+              delete this.pressed[keyCode];
+            }
+            const f = this.fighters[this.player];
+            const move = this.getMove(this.pressed, KEYS, this.player);
+            this.moveFighter(f, move);
           }
-          const f = this.fighters[this.player];
-          const move = this.getMove(this.pressed, KEYS, this.player);
-          this.moveFighter(f, move);
-        }
-      );
+        );
+      }
     }
   }
 
