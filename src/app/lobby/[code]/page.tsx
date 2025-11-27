@@ -57,13 +57,18 @@ export default function LobbyPage() {
       // Save room code for game page
       localStorage.setItem("currentRoomCode", code);
       router.push(`/game?code=${code}`);
+    } else if (room?.status === "selecting") {
+      // Redirect to home for game selection
+      localStorage.setItem("currentRoomCode", code);
+      router.push("/");
     }
-  }, [room?.status, router]);
+  }, [room?.status, router, code]);
 
   const handleStartGame = async () => {
     if (!roomId) return;
     try {
-      await roomService.startGame(roomId);
+      // Instead of starting immediately, go to selection mode
+      await roomService.updateRoomStatus(roomId, "selecting");
     } catch (error: any) {
       alert(error.message || "Failed to start game");
     }

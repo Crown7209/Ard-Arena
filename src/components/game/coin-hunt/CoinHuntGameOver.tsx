@@ -1,7 +1,7 @@
 import React from "react";
 import { Loot } from "./types";
 
-interface NFTHuntGameOverProps {
+interface CoinHuntGameOverProps {
   score: number;
   timer: number;
   playerLevel: number;
@@ -14,7 +14,7 @@ interface NFTHuntGameOverProps {
   xpPerPoint: number;
 }
 
-const NFTHuntGameOver: React.FC<NFTHuntGameOverProps> = ({
+const CoinHuntGameOver: React.FC<CoinHuntGameOverProps> = ({
   score,
   timer,
   playerLevel,
@@ -103,4 +103,4 @@ const NFTHuntGameOver: React.FC<NFTHuntGameOverProps> = ({
   );
 };
 
-export default NFTHuntGameOver;
+export default CoinHuntGameOver;

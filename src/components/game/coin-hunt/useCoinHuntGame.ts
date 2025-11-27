@@ -19,7 +19,7 @@ const XP_PER_POINT = 10;
 const XP_TO_LEVEL = (level: number) =>
   Math.floor(100 * Math.pow(1.5, level - 1));
 
-export const useNFTHuntGame = () => {
+export const useCoinHuntGame = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<"menu" | "playing" | "gameover">(
     "menu"
@@ -78,9 +78,9 @@ export const useNFTHuntGame = () => {
   ];
 
   useEffect(() => {
-    const savedLevel = localStorage.getItem("nft_hunt_level");
-    const savedXP = localStorage.getItem("nft_hunt_xp");
-    const savedLeaderboard = localStorage.getItem("nft_hunt_leaderboard");
+    const savedLevel = localStorage.getItem("coin_hunt_level");
+    const savedXP = localStorage.getItem("coin_hunt_xp");
+    const savedLeaderboard = localStorage.getItem("coin_hunt_leaderboard");
 
     if (savedLevel) setPlayerLevel(parseInt(savedLevel));
     if (savedXP) setPlayerXP(parseInt(savedXP));
@@ -88,8 +88,8 @@ export const useNFTHuntGame = () => {
   }, []);
 
   const savePlayerData = () => {
-    localStorage.setItem("nft_hunt_level", playerLevel.toString());
-    localStorage.setItem("nft_hunt_xp", playerXP.toString());
+    localStorage.setItem("coin_hunt_level", playerLevel.toString());
+    localStorage.setItem("coin_hunt_xp", playerXP.toString());
   };
 
   const addToLeaderboard = (score: number) => {
@@ -107,7 +107,7 @@ export const useNFTHuntGame = () => {
 
     setLeaderboard(updatedLeaderboard);
     localStorage.setItem(
-      "nft_hunt_leaderboard",
+      "coin_hunt_leaderboard",
       JSON.stringify(updatedLeaderboard)
     );
   };

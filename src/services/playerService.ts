@@ -9,7 +9,12 @@ export const playerService = {
       p_player_name: name,
     });
 
-    if (!error) return data as Player;
+    if (!error) {
+      const player = data as Player;
+      // Set as admin if first player
+      await this.trySetAsAdmin(roomId, player.id);
+      return player;
+    }
 
     console.warn("RPC join_room failed, falling back to direct insert:", error);
 
@@ -29,7 +34,21 @@ export const playerService = {
       throw fallbackError; // Throw so UI can show message
     }
 
-    return fallbackData as Player;
+    const player = fallbackData as Player;
+    // Set as admin if first player
+    await this.trySetAsAdmin(roomId, player.id);
+    return player;
+  },
+
+  async trySetAsAdmin(roomId: string, playerId: string) {
+    try {
+      // Import roomService to set admin
+      const { roomService } = await import("./roomService");
+      await roomService.setAdmin(roomId, playerId);
+    } catch (error) {
+      // Silently fail if already has admin
+      console.log("Could not set as admin (likely already set):", error);
+    }
   },
 
   async getPlayers(roomId: string): Promise<Player[]> {

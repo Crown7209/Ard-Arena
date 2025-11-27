@@ -4,6 +4,8 @@ export interface Room {
   id: string;
   code: string;
   host_id: string;
+  admin_id: string | null; // First person to join becomes admin
+  selected_game: string | null; // Game selected by admin
   status: RoomStatus;
   created_at: string;
 }

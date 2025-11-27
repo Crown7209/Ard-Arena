@@ -24,9 +24,9 @@ type Level = {
 };
 
 const LEVELS: Record<string, Level> = {
-  medium: { name: "Medium", gridSize: 4, pairsCount: 8, time: 50 },
-  hard: { name: "Hard", gridSize: 5, pairsCount: 12, time: 80 },
-  extreme: { name: "Extreme", gridSize: 6, pairsCount: 18, time: 100 },
+  medium: { name: "Medium", gridSize: 4, pairsCount: 8, time: 30 },
+  hard: { name: "Hard", gridSize: 5, pairsCount: 12, time: 60 },
+  extreme: { name: "Extreme", gridSize: 6, pairsCount: 18, time: 90 },
 };
 
 const POINTS_BY_LEVEL: Record<string, number> = {
@@ -35,15 +35,23 @@ const POINTS_BY_LEVEL: Record<string, number> = {
   extreme: 3,
 };
 
+const COIN_REWARDS: Record<string, number> = {
+  medium: 80,
+  hard: 100,
+  extreme: 120,
+};
+
 const COIN_COST_TO_PLAY = 50;
 const COIN_COST_TO_CONTINUE = 30;
-const TIME_EXTENSION = 30; // seconds
+const TIME_EXTENSION = 10; // seconds
 
 export default function ColorMatchGame() {
   const router = useRouter();
   const { user: authUser } = useAuth();
   const [selection, setSelection] = useState<number[]>([]);
-  const [gameState, setGameState] = useState<GameState>(GAME_STATE.LEVEL_SELECT);
+  const [gameState, setGameState] = useState<GameState>(
+    GAME_STATE.LEVEL_SELECT
+  );
   const [currentLevel, setCurrentLevel] = useState<Level | null>(null);
   const [currentLevelKey, setCurrentLevelKey] = useState<string>("");
   const [timer, setTimer] = useState(0);
@@ -87,10 +95,14 @@ export default function ColorMatchGame() {
     if (matchedPairs.has(idx)) return;
     clearTileTimer(idx);
     setActiveItems((prev) => new Set(prev).add(idx));
-    
+
     const timer = setTimeout(() => {
       setActiveItems((prev) => {
-        if (!matchedPairs.has(idx) && !selection.includes(idx) && prev.has(idx)) {
+        if (
+          !matchedPairs.has(idx) &&
+          !selection.includes(idx) &&
+          prev.has(idx)
+        ) {
           const newSet = new Set(prev);
           newSet.delete(idx);
           return newSet;
@@ -99,7 +111,7 @@ export default function ColorMatchGame() {
       });
       tileTimersRef.current.delete(idx);
     }, 600);
-    
+
     tileTimersRef.current.set(idx, timer);
   };
 
@@ -123,7 +135,9 @@ export default function ColorMatchGame() {
 
     const currentCoins = data?.coins || 0;
     if (currentCoins < amount) {
-      alert(`You need ${amount} coins to play. You have ${currentCoins} coins.`);
+      alert(
+        `You need ${amount} coins to play. You have ${currentCoins} coins.`
+      );
       return false;
     }
 
@@ -180,12 +194,13 @@ export default function ColorMatchGame() {
     setMatchedPairs(new Set());
     setDraggedTiles(new Set());
     setShowContinueButton(false);
-    
+
     tileTimersRef.current.forEach((timer) => clearTimeout(timer));
     tileTimersRef.current.clear();
-    
+
     const uniqueColors = Array.from(new Set(colors));
-    const randomStartColor = uniqueColors[Math.floor(Math.random() * uniqueColors.length)];
+    const randomStartColor =
+      uniqueColors[Math.floor(Math.random() * uniqueColors.length)];
     setBackgroundColor(randomStartColor);
     setTargetColor(randomStartColor);
     setGameState(GAME_STATE.PLAYING);
@@ -212,10 +227,10 @@ export default function ColorMatchGame() {
     setMatchedPairs(new Set());
     setDraggedTiles(new Set());
     setActiveItems(new Set());
-    
+
     tileTimersRef.current.forEach((timer) => clearTimeout(timer));
     tileTimersRef.current.clear();
-    
+
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
     }
@@ -263,14 +278,21 @@ export default function ColorMatchGame() {
 
     const firstColor = randomColorList[newSelection[0]];
     const secondColor = randomColorList[newSelection[1]];
-    const isMatch = firstColor === secondColor && firstColor === targetColor;
+    const isMatch = firstColor === secondColor;
 
     clearTileTimer(newSelection[0]);
     clearTileTimer(newSelection[1]);
 
     if (!isMatch) {
+      // If colors don't match, hide both tiles after a delay
       setTimeout(() => {
         setActiveItems((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(newSelection[0]);
+          newSet.delete(newSelection[1]);
+          return newSet;
+        });
+        setDraggedTiles((prev) => {
           const newSet = new Set(prev);
           newSet.delete(newSelection[0]);
           newSet.delete(newSelection[1]);
@@ -285,12 +307,12 @@ export default function ColorMatchGame() {
     const updatedFoundColors = new Set(foundColors);
     updatedFoundColors.add(matchedColor);
     setFoundColors(updatedFoundColors);
-    
+
     const allGameColors = Array.from(new Set(randomColorList));
     const remainingColors = allGameColors.filter(
       (color) => !updatedFoundColors.has(color)
     );
-    
+
     let newBgColor: string;
     if (remainingColors.length > 0) {
       const randomIndex = Math.floor(Math.random() * remainingColors.length);
@@ -301,24 +323,24 @@ export default function ColorMatchGame() {
     } else {
       newBgColor = "#BAE1FF";
     }
-    
+
     setBackgroundColor(newBgColor);
     setTargetColor(newBgColor);
-    
+
     setMatchedPairs((prev) => {
       const newSet = new Set(prev);
       newSet.add(newSelection[0]);
       newSet.add(newSelection[1]);
       return newSet;
     });
-    
+
     setActiveItems((prev) => {
       const newSet = new Set(prev);
       newSet.add(newSelection[0]);
       newSet.add(newSelection[1]);
       return newSet;
     });
-    
+
     setMatchCount((prev) => {
       const newCount = prev + 1;
       if (newCount === currentLevel.pairsCount) {
@@ -327,14 +349,14 @@ export default function ColorMatchGame() {
         }
         setGameState(GAME_STATE.FINISHED);
         setShowContinueButton(false);
-        
+
         // Game won! Return 50 coins + add point to leaderboard
         if (authUser && currentLevelKey) {
           const pointsToAdd = POINTS_BY_LEVEL[currentLevelKey] || 0;
           if (pointsToAdd > 0) {
-            // Return coins
-            addCoins(COIN_COST_TO_PLAY);
-            
+            // Return coins based on level reward
+            addCoins(COIN_REWARDS[currentLevelKey] || 0);
+
             // Add points
             supabase
               .from("users")
@@ -351,7 +373,10 @@ export default function ColorMatchGame() {
                     .eq("id", authUser.id)
                     .then(({ error: updateError }) => {
                       if (updateError) {
-                        console.error("Error updating color match points:", updateError);
+                        console.error(
+                          "Error updating color match points:",
+                          updateError
+                        );
                       }
                     });
                 } else if (fetchError && fetchError.code === "PGRST116") {
@@ -375,7 +400,7 @@ export default function ColorMatchGame() {
       }
       return newCount;
     });
-    
+
     setSelection([]);
   };
 
@@ -388,7 +413,7 @@ export default function ColorMatchGame() {
             .select("coins")
             .eq("id", authUser.id)
             .single();
-          
+
           if (error) {
             console.error("Error fetching coins in game:", error);
             setCoins(0);
@@ -442,9 +467,9 @@ export default function ColorMatchGame() {
             priority
           />
         </div>
-        
+
         <div className="absolute inset-0 z-10 bg-black/20" />
-        
+
         <button
           type="button"
           onClick={() => router.push("/")}
@@ -453,7 +478,7 @@ export default function ColorMatchGame() {
         >
           <ArrowLeft className="h-4 w-4 text-white" />
         </button>
-        
+
         <div className="relative z-20 max-w-4xl w-full text-center flex flex-col h-full justify-center">
           <h1 className="text-4xl md:text-6xl font-black text-white mb-2 md:mb-4 drop-shadow-2xl">
             Color Match
@@ -486,7 +511,7 @@ export default function ColorMatchGame() {
                     {level.pairsCount} pairs • {level.time}s
                   </div>
                   <div className="text-white/90 text-xs md:text-sm font-semibold">
-                    {COIN_COST_TO_PLAY} coins
+                    Entry: {COIN_COST_TO_PLAY} • Win: {COIN_REWARDS[key]}
                   </div>
                   {!canAfford && (
                     <div className="text-red-300 text-[10px] md:text-xs mt-1">
@@ -516,7 +541,7 @@ export default function ColorMatchGame() {
       >
         <ArrowLeft className="h-4 w-4 text-white" />
       </button>
-      
+
       <div className="max-w-[500px] w-full text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-lg">
           {currentLevel?.name} Mode
@@ -552,42 +577,53 @@ export default function ColorMatchGame() {
             </div>
           )}
           {(gameState === GAME_STATE.FINISHED ||
-            (currentLevel && matchCount === currentLevel.pairsCount)) && !showContinueButton && (
-            <div className="flex gap-3 justify-center">
-              <button
-                className="px-6 py-3 text-lg font-bold text-white bg-black/30 border-2 border-white rounded-lg hover:bg-black/50 hover:scale-105 transition-all duration-300"
-                onClick={reset}
-              >
-                Change Level
-              </button>
-              <button
-                className="px-6 py-3 text-lg font-bold text-white bg-white/20 border-2 border-white rounded-lg hover:bg-white/30 hover:scale-105 transition-all duration-300"
-                onClick={() =>
-                  currentLevel &&
-                  startLevel(
-                    Object.keys(LEVELS).find(
-                      (k) => LEVELS[k] === currentLevel
-                    ) || "medium"
-                  )
-                }
-              >
-                Play Again
-              </button>
-            </div>
-          )}
+            (currentLevel && matchCount === currentLevel.pairsCount)) &&
+            !showContinueButton && (
+              <div className="flex gap-3 justify-center">
+                <button
+                  className="px-6 py-3 text-lg font-bold text-white bg-black/30 border-2 border-white rounded-lg hover:bg-black/50 hover:scale-105 transition-all duration-300"
+                  onClick={reset}
+                >
+                  Change Level
+                </button>
+                <button
+                  className="px-6 py-3 text-lg font-bold text-white bg-white/20 border-2 border-white rounded-lg hover:bg-white/30 hover:scale-105 transition-all duration-300"
+                  onClick={() =>
+                    currentLevel &&
+                    startLevel(
+                      Object.keys(LEVELS).find(
+                        (k) => LEVELS[k] === currentLevel
+                      ) || "medium"
+                    )
+                  }
+                >
+                  Play Again
+                </button>
+              </div>
+            )}
         </div>
 
-        <div 
+        <div
           className="bg-white/90 rounded-xl p-5 shadow-2xl"
           onTouchMove={(e) => {
             if (showContinueButton || timer <= 0) return;
             const touch = e.touches[0];
-            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            const element = document.elementFromPoint(
+              touch.clientX,
+              touch.clientY
+            );
             if (element) {
-              const liElement = element.closest('li[data-tile-index]');
+              const liElement = element.closest("li[data-tile-index]");
               if (liElement) {
-                const tileIndex = parseInt(liElement.getAttribute('data-tile-index') || '-1');
-                if (tileIndex >= 0 && tileIndex < randomColorList.length && !matchedPairs.has(tileIndex) && !selection.includes(tileIndex)) {
+                const tileIndex = parseInt(
+                  liElement.getAttribute("data-tile-index") || "-1"
+                );
+                if (
+                  tileIndex >= 0 &&
+                  tileIndex < randomColorList.length &&
+                  !matchedPairs.has(tileIndex) &&
+                  !selection.includes(tileIndex)
+                ) {
                   revealTile(tileIndex);
                   setDraggedTiles((prev) => {
                     const newSet = new Set(prev);
@@ -608,7 +644,10 @@ export default function ColorMatchGame() {
               setDraggedTiles((prev) => {
                 const newSet = new Set(prev);
                 newSet.forEach((tileIdx) => {
-                  if (!matchedPairs.has(tileIdx) && !selection.includes(tileIdx)) {
+                  if (
+                    !matchedPairs.has(tileIdx) &&
+                    !selection.includes(tileIdx)
+                  ) {
                     hideTile(tileIdx);
                   }
                 });
@@ -627,8 +666,11 @@ export default function ColorMatchGame() {
           >
             {randomColorList.map((color, idx) => {
               const isMatched = matchedPairs.has(idx);
-              const isActive = activeItems.has(idx) || draggedTiles.has(idx);
-              
+              const isActive =
+                activeItems.has(idx) ||
+                draggedTiles.has(idx) ||
+                selection.includes(idx);
+
               return (
                 <li
                   key={idx}
@@ -646,7 +688,13 @@ export default function ColorMatchGame() {
                   `}
                   onClick={() => handleColorClick(idx)}
                   onTouchStart={(e) => {
-                    if (isMatched || selection.includes(idx) || showContinueButton || timer <= 0) return;
+                    if (
+                      isMatched ||
+                      selection.includes(idx) ||
+                      showContinueButton ||
+                      timer <= 0
+                    )
+                      return;
                     revealTile(idx);
                     setDraggedTiles((prev) => {
                       const newSet = new Set(prev);

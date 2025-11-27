@@ -2,7 +2,7 @@ import React from "react";
 import { Star, Trophy } from "lucide-react";
 import { LeaderboardEntry } from "./types";
 
-interface NFTHuntMenuProps {
+interface CoinHuntMenuProps {
   playerLevel: number;
   playerXP: number;
   xpProgress: number;
@@ -13,7 +13,7 @@ interface NFTHuntMenuProps {
   xpToLevel: (level: number) => number;
 }
 
-const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
+const CoinHuntMenu: React.FC<CoinHuntMenuProps> = ({
   playerLevel,
   playerXP,
   xpProgress,
@@ -46,29 +46,29 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
         </div>
 
         <h1 className="text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-purple-400 mb-4">
-          NFT HUNT
+          COIN HUNT
         </h1>
         <p className="text-xl text-cyan-300 mb-2">Vertical Survival</p>
-        <p className="text-slate-400 mb-8">Collect rare NFTs and survive!</p>
+        <p className="text-slate-400 mb-8">Collect rare Coins and survive!</p>
 
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-cyan-500/20">
           <h2 className="text-lg font-bold text-white mb-4">How to Play</h2>
           <ul className="text-left text-slate-300 space-y-2 text-sm">
             <li>🎮 Use Arrow Keys or WASD to move</li>
-            <li>💎 Collect colored NFT loot</li>
+            <li>💎 Collect colored Coin loot</li>
             <li>⚡ Power-ups: Speed, Magnet, Time (+10s)</li>
             <li>🔥 Build combos for multipliers!</li>
             <li>🧱 Avoid gray obstacles!</li>
             <li>🤖 Escape the red AI bot!</li>
-            <li>⏱️ Survive for 60 seconds</li>
             <li>📈 Earn XP and level up!</li>
+            <li>⏱️ Survive</li>
           </ul>
         </div>
 
         <div className="space-y-3">
           <button
             onClick={startGame}
-            className="w-full bg-linear-to-r from-cyan-500 to-purple-500 text-white font-bold py-4 px-8 rounded-xl text-xl hover:scale-105 transition-transform shadow-lg shadow-cyan-500/50"
+            className="w-full bg-linear-to-r from-cyan-500 to-purple-500 text-white font-bold py-4 px-8 rounded-xl text-xl hover:scale-105 transition-transform cursor-pointer shadow-md shadow-cyan-500/50"
           >
             START GAME
           </button>
@@ -131,4 +131,4 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
   );
 };
 
-export default NFTHuntMenu;
+export default CoinHuntMenu;

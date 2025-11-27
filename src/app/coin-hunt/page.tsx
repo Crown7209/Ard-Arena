@@ -1,11 +1,11 @@
 "use client";
 
-import NFTHuntMenu from "@/components/game/nft-hunt/NFTHuntMenu";
-import NFTHuntGameOver from "@/components/game/nft-hunt/NFTHuntGameOver";
-import NFTHuntPlaying from "@/components/game/nft-hunt/NFTHuntPlaying";
-import { useNFTHuntGame } from "@/components/game/nft-hunt/useNFTHuntGame";
+import CoinHuntMenu from "@/components/game/coin-hunt/CoinHuntMenu";
+import CoinHuntGameOver from "@/components/game/coin-hunt/CoinHuntGameOver";
+import CoinHuntPlaying from "@/components/game/coin-hunt/CoinHuntPlaying";
+import { useCoinHuntGame } from "@/components/game/coin-hunt/useCoinHuntGame";
 
-export default function NFTHuntGame() {
+export default function CoinHuntGame() {
   const {
     canvasRef,
     gameState,
@@ -29,11 +29,11 @@ export default function NFTHuntGame() {
     XP_PER_POINT,
     CANVAS_WIDTH,
     CANVAS_HEIGHT,
-  } = useNFTHuntGame();
+  } = useCoinHuntGame();
 
   if (gameState === "menu") {
     return (
-      <NFTHuntMenu
+      <CoinHuntMenu
         playerLevel={playerLevel}
         playerXP={playerXP}
         xpProgress={xpProgress}
@@ -48,7 +48,7 @@ export default function NFTHuntGame() {
 
   if (gameState === "gameover") {
     return (
-      <NFTHuntGameOver
+      <CoinHuntGameOver
         score={score}
         timer={timer}
         playerLevel={playerLevel}
@@ -64,7 +64,7 @@ export default function NFTHuntGame() {
   }
 
   return (
-    <NFTHuntPlaying
+    <CoinHuntPlaying
       score={score}
       timer={timer}
       playerLevel={playerLevel}
