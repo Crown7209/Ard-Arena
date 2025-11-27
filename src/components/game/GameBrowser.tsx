@@ -23,7 +23,11 @@ type GameCategory = {
   games: Game[];
 };
 
-const GameBrowser = () => {
+interface GameBrowserProps {
+  onGameSelect?: (gameId: string) => void;
+}
+
+const GameBrowser = ({ onGameSelect }: GameBrowserProps) => {
   const router = useRouter();
   const { setCurrentPlayerId } = usePlayerStore();
   const [loadingGameId, setLoadingGameId] = useState<string | null>(null);
@@ -31,12 +35,43 @@ const GameBrowser = () => {
   const handleGameClick = async (game: Game) => {
     if (loadingGameId) return;
 
+    // If we are in selection mode (host selecting game), call the callback
+    if (onGameSelect) {
+      onGameSelect(game.id);
+      return;
+    }
+
     setLoadingGameId(game.id);
 
-    // For Fight Game, show mode selection
+    // For Fight Game, create room and go to lobby (Standard Flow)
+    // The user wants it to go to "mk" which is /game
     if (game.gameType === "fighting") {
-      setLoadingGameId(null);
-      router.push("/game-mode");
+      // Clear previous session data
+      localStorage.removeItem("playerId");
+      localStorage.removeItem("currentRoomCode");
+      setCurrentPlayerId(null);
+
+      const hostId = Math.random().toString(36).substring(7);
+      localStorage.setItem("hostId", hostId);
+
+      try {
+        const room = await roomService.createRoom(hostId);
+        if (room) {
+          // Set room to selecting status and redirect to home
+          await roomService.updateRoomStatus(room.id, "selecting");
+          localStorage.setItem("currentRoomCode", room.code);
+          setLoadingGameId(null);
+          router.push("/");
+          return;
+        } else {
+          alert("Failed to create room");
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Error creating room");
+      } finally {
+        setLoadingGameId(null);
+      }
       return;
     }
 
@@ -50,11 +85,12 @@ const GameBrowser = () => {
     // For Coin Hunt game, navigate directly to the game page
     if (game.id === "coin-hunt") {
       setLoadingGameId(null);
-      router.push("/nft-hunt");
+      router.push("/coin-hunt");
       return;
     }
 
     // For other games, use the normal flow
+
     // Clear previous session data
     localStorage.removeItem("playerId");
     localStorage.removeItem("currentRoomCode");
@@ -95,7 +131,8 @@ const GameBrowser = () => {
         {
           id: "game-1",
           title: "Adventure Quest",
-          description: "Embark on an exciting journey through magical worlds and solve puzzles together!",
+          description:
+            "Embark on an exciting journey through magical worlds and solve puzzles together!",
           rating: 5,
           players: "1-4 players",
           image: "/images/gamepreview/adventure-quest.png",
@@ -104,7 +141,8 @@ const GameBrowser = () => {
         {
           id: "game-2",
           title: "Color Match",
-          description: "Match colors and patterns in this fun and educational game for kids!",
+          description:
+            "Match colors and patterns in this fun and educational game for kids!",
           rating: 4.5,
           players: "1-2 players",
           image: "/images/gamepreview/color-match.png",
@@ -113,7 +151,8 @@ const GameBrowser = () => {
         {
           id: "game-3",
           title: "Animal Friends",
-          description: "Help cute animals solve problems and learn about friendship!",
+          description:
+            "Help cute animals solve problems and learn about friendship!",
           rating: 5,
           players: "1-3 players",
           image: "/images/gamepreview/animal-friends.png",
@@ -127,7 +166,8 @@ const GameBrowser = () => {
         {
           id: "fighting-game",
           title: "Fight Game",
-          description: "Intense multiplayer fighting game! Battle your friends in epic combat with various moves and strategies.",
+          description:
+            "Intense multiplayer fighting game! Battle your friends in epic combat with various moves and strategies.",
           rating: 5,
           players: "1-2 players",
           image: "/images/fighting-grid.svg",
@@ -136,7 +176,8 @@ const GameBrowser = () => {
         {
           id: "game-5",
           title: "Racing Challenge",
-          description: "Fast-paced racing action! Compete against friends in thrilling races with power-ups and obstacles.",
+          description:
+            "Fast-paced racing action! Compete against friends in thrilling races with power-ups and obstacles.",
           rating: 4.5,
           players: "1-4 players",
           image: "/images/gamepreview/racing-challenge.png",
@@ -145,7 +186,8 @@ const GameBrowser = () => {
         {
           id: "game-6",
           title: "Battle Arena",
-          description: "Strategic combat game where you build your team and fight in intense battles!",
+          description:
+            "Strategic combat game where you build your team and fight in intense battles!",
           rating: 4.5,
           players: "2-6 players",
           image: "/images/gamepreview/battle-arena.png",
@@ -159,7 +201,8 @@ const GameBrowser = () => {
         {
           id: "coin-hunt",
           title: "Coin Hunt",
-          description: "Collect coins, avoid obstacles, and escape the AI bot in this fast-paced survival game!",
+          description:
+            "Collect coins, avoid obstacles, and escape the AI bot in this fast-paced survival game!",
           rating: 5,
           players: "1 player",
           image: "/images/gamepreview/coin-hunters.png",
@@ -168,7 +211,8 @@ const GameBrowser = () => {
         {
           id: "game-7",
           title: "Strategy Master",
-          description: "Test your strategic thinking in this challenging board game adaptation!",
+          description:
+            "Test your strategic thinking in this challenging board game adaptation!",
           rating: 5,
           players: "2-4 players",
           image: "/images/gamepreview/strategy-game.png",
@@ -177,19 +221,11 @@ const GameBrowser = () => {
         {
           id: "game-8",
           title: "Card Champions",
-          description: "Classic card game experience with modern twists and competitive gameplay!",
+          description:
+            "Classic card game experience with modern twists and competitive gameplay!",
           rating: 4.5,
           players: "2-6 players",
           image: "/images/gamepreview/card-champions.png",
-          gameType: "other",
-        },
-        {
-          id: "game-9",
-          title: "Puzzle Masters",
-          description: "Complex puzzles and brain teasers designed for experienced players!",
-          rating: 5,
-          players: "1-4 players",
-          image: "/images/gamepreview/puzzle-game.png",
           gameType: "other",
         },
       ],
@@ -231,4 +267,3 @@ const GameBrowser = () => {
 };
 
 export default GameBrowser;
-

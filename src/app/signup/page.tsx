@@ -4,9 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft, UserPlus, CheckCircle2 } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -43,107 +41,192 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-gray-900/50 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-800 p-8 text-center space-y-6">
-          <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto">
-            <Loader2 className="w-8 h-8 text-green-500" />
-          </div>
-          <h2 className="text-2xl font-bold text-white">Check your email</h2>
-          <p className="text-gray-400">
-            We've sent a confirmation link to{" "}
-            <span className="text-white font-medium">{email}</span>.
-          </p>
-          <Link href="/login">
-            <Button className="mt-4 w-full bg-gray-800 hover:bg-gray-700 text-white border-0">
-              Back to Login
-            </Button>
-          </Link>
+      <div className="relative min-h-screen text-white bg-black">
+        <div className="relative z-10 flex min-h-screen flex-col">
+          <header className="flex flex-wrap items-center justify-between gap-3 pl-4 pr-0 py-4 md:gap-4 md:pl-12 md:pr-0 md:py-10">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-200"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="h-4 w-4 text-[#64ccc5]" />
+            </button>
+            <div className="hidden md:flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className="inline-flex items-center justify-center gap-2 h-16 px-6 rounded-2xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10"
+              >
+                <ArrowLeft className="h-4 w-4 text-[#64ccc5]" />
+                Back
+              </button>
+            </div>
+          </header>
+
+          <main className="flex-1 flex items-center justify-center px-4 py-8 md:py-12">
+            <div className="w-full max-w-md">
+              <div className="bg-black/60 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20 p-8 text-center space-y-6">
+                <div className="w-16 h-16 bg-[#64ccc5]/10 rounded-full flex items-center justify-center mx-auto border border-[#64ccc5]/30">
+                  <CheckCircle2 className="w-8 h-8 text-[#64ccc5]" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">
+                  Check your email
+                </h2>
+                <p className="text-white/60">
+                  We've sent a confirmation link to{" "}
+                  <span className="text-white font-medium">{email}</span>.
+                </p>
+                <Link href="/login">
+                  <button className="w-full py-3 md:py-4 rounded-xl bg-[#64ccc5] text-slate-950 font-semibold text-sm md:text-base shadow-[0_0_15px_rgba(100,204,197,0.3)] hover:bg-[#56b4ae] focus:outline-none focus:ring-2 focus:ring-[#64ccc5] transition-all">
+                    Back to Login
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-gray-900/50 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-800 p-8 space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white">Create Account</h1>
-          <p className="text-gray-400 mt-2">Join the arena today</p>
-        </div>
-
-        <form onSubmit={handleSignup} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">
-              Username
-            </label>
-            <Input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="PlayerOne"
-              className="bg-gray-800 border-gray-700 text-white"
-              required
-              minLength={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Email</label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="bg-gray-800 border-gray-700 text-white"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">
-              Password
-            </label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="bg-gray-800 border-gray-700 text-white"
-              required
-              minLength={6}
-            />
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
-              {error}
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white border-0"
+    <div className="relative min-h-screen text-white bg-black">
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Header matching landing page */}
+        <header className="flex flex-wrap items-center justify-between gap-3 pl-4 pr-0 py-4 md:gap-4 md:pl-12 md:pr-0 md:py-10">
+          <button
+            type="button"
+            onClick={() => router.push("/")}
+            className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-200"
+            aria-label="Go back"
           >
-            {loading ? (
-              <div className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Creating Account...
+            <ArrowLeft className="h-4 w-4 text-[#64ccc5]" />
+          </button>
+
+          <div className="hidden md:flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="inline-flex items-center justify-center gap-2 h-16 px-6 rounded-2xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10"
+            >
+              <ArrowLeft className="h-4 w-4 text-[#64ccc5]" />
+              Back
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 md:gap-4 ml-auto">
+            <div className="relative">
+              <div className="inline-flex items-center justify-center h-10 w-10 md:h-16 md:w-16 rounded-xl md:rounded-2xl border border-white/30 bg-white/5 text-white/90">
+                <UserPlus className="h-4 w-4 md:h-7 md:w-7 text-[#64ccc5]" />
               </div>
-            ) : (
-              "Sign Up"
-            )}
-          </Button>
-        </form>
+            </div>
+          </div>
+        </header>
 
-        <div className="text-center text-sm text-gray-400">
-          Already have an account?{" "}
-          <Link
-            href="/login"
-            className="text-indigo-400 hover:text-indigo-300 font-medium"
-          >
-            Sign in
-          </Link>
-        </div>
+        <main className="flex-1 flex items-center justify-center px-4 py-8 md:py-12">
+          <div className="w-full max-w-md">
+            {/* Mobile: Hero section matching landing page */}
+            <div className="mb-8 md:hidden text-center">
+              <div className="inline-flex items-center justify-center p-3 bg-[#64ccc5]/10 rounded-xl mb-4 border border-[#64ccc5]/30">
+                <UserPlus className="w-8 h-8 text-[#64ccc5]" />
+              </div>
+              <h1 className="text-2xl font-black text-white uppercase tracking-[0.6em] mb-2">
+                SIGN UP
+              </h1>
+              <p className="text-xs uppercase tracking-widest text-[#64ccc5]">
+                Join the Arena
+              </p>
+            </div>
+
+            {/* Desktop: Hero section */}
+            <div className="hidden md:block text-center mb-8">
+              <h1 className="text-4xl font-black text-white mb-2">
+                Create Account
+              </h1>
+              <p className="text-white/60">Join the arena today</p>
+            </div>
+
+            {/* Form card matching game card style */}
+            <div className="bg-black/60 backdrop-blur-sm rounded-xl md:rounded-2xl border border-white/20 p-6 md:p-8">
+              <form onSubmit={handleSignup} className="space-y-5 md:space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs md:text-sm font-medium text-white/90 uppercase tracking-wider">
+                    Username
+                  </label>
+                  <input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="PlayerOne"
+                    className="w-full px-4 py-3 md:py-3.5 rounded-xl border border-white/30 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#64ccc5] focus:border-[#64ccc5] transition-all"
+                    required
+                    minLength={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs md:text-sm font-medium text-white/90 uppercase tracking-wider">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full px-4 py-3 md:py-3.5 rounded-xl border border-white/30 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#64ccc5] focus:border-[#64ccc5] transition-all"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs md:text-sm font-medium text-white/90 uppercase tracking-wider">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 md:py-3.5 rounded-xl border border-white/30 bg-white/5 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-[#64ccc5] focus:border-[#64ccc5] transition-all"
+                    required
+                    minLength={6}
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs md:text-sm text-center">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 md:py-4 rounded-xl bg-[#64ccc5] text-slate-950 font-semibold text-sm md:text-base shadow-[0_0_15px_rgba(100,204,197,0.3)] hover:bg-[#56b4ae] focus:outline-none focus:ring-2 focus:ring-[#64ccc5] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 md:w-5 md:h-5 animate-spin" />
+                      <span>Creating Account...</span>
+                    </div>
+                  ) : (
+                    "Sign Up"
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 text-center text-xs md:text-sm text-white/60">
+                Already have an account?{" "}
+                <Link
+                  href="/login"
+                  className="text-[#64ccc5] hover:text-[#56b4ae] font-medium transition-colors"
+                >
+                  Sign in
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { LeaderboardEntry } from "./types";
 import Image from "next/image";
 
-interface NFTHuntMenuProps {
+interface CoinHuntMenuProps {
   playerLevel: number;
   playerXP: number;
   xpProgress: number;
@@ -19,7 +19,7 @@ interface NFTHuntMenuProps {
   setSelectedCharacter: (char: string) => void;
 }
 
-const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
+const CoinHuntMenu: React.FC<CoinHuntMenuProps> = ({
   playerLevel,
   playerXP,
   xpProgress,
@@ -47,7 +47,7 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
             .select("coins")
             .eq("id", authUser.id)
             .single();
-          
+
           if (error) {
             console.error("Error fetching coins:", error);
             setCoins(0);
@@ -96,7 +96,10 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
   // Close modal when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
         setShowTutorial(false);
       }
     };
@@ -119,36 +122,36 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
   ];
 
   return (
-    <div 
+    <div
       className="relative min-h-screen flex items-center justify-center p-4 md:p-6 overflow-hidden"
       style={{ backgroundColor: "#021526" }}
     >
       {/* Creative Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Gradient orbs with smooth animations */}
-        <div 
+        <div
           className="absolute top-0 left-0 w-96 h-96 bg-[#0A5EB0]/20 rounded-full blur-3xl"
           style={{
             animation: "coinHuntFloat 8s ease-in-out infinite",
           }}
         ></div>
-        <div 
+        <div
           className="absolute bottom-0 right-0 w-96 h-96 bg-[#0A5EB0]/15 rounded-full blur-3xl"
           style={{
             animation: "coinHuntFloat 10s ease-in-out infinite reverse",
             animationDelay: "1s",
           }}
         ></div>
-        <div 
+        <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#0A5EB0]/10 rounded-full blur-3xl"
           style={{
             animation: "coinHuntPulse 6s ease-in-out infinite",
             animationDelay: "2s",
           }}
         ></div>
-        
+
         {/* Subtle grid pattern */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `
@@ -187,7 +190,9 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
       <div className="absolute top-4 right-4 md:top-6 md:right-6 z-30">
         <div className="flex items-center gap-2 rounded-xl border border-[#0A5EB0]/50 bg-[#0A5EB0]/10 px-3 md:px-4 py-2 backdrop-blur-sm">
           <Coins className="w-4 h-4 md:w-5 md:h-5 text-[#0A5EB0]" />
-          <span className="text-[#0A5EB0] font-bold text-sm md:text-base">{coins}</span>
+          <span className="text-[#0A5EB0] font-bold text-sm md:text-base">
+            {coins}
+          </span>
         </div>
       </div>
 
@@ -197,7 +202,9 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Star className="w-4 h-4 md:w-5 md:h-5 text-[#0A5EB0]" />
-              <span className="text-white font-bold text-sm md:text-base">Level {playerLevel}</span>
+              <span className="text-white font-bold text-sm md:text-base">
+                Level {playerLevel}
+              </span>
             </div>
             <span className="text-white/60 text-xs md:text-sm">
               {playerXP} / {xpToLevel(playerLevel)} XP
@@ -206,21 +213,32 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
           <div className="w-full bg-white/10 rounded-full h-2 md:h-2.5">
             <div
               className="h-2 md:h-2.5 rounded-full transition-all duration-300"
-              style={{ 
+              style={{
                 width: `${xpProgress}%`,
-                backgroundColor: "#0A5EB0"
+                backgroundColor: "#0A5EB0",
               }}
             />
           </div>
         </div>
 
-        {/* Title */}
-        <div className="space-y-2 md:space-y-3">
-          <h1 className="text-4xl md:text-6xl font-black text-white">
-            COIN HUNT
-          </h1>
-          <p className="text-base md:text-xl text-[#0A5EB0] font-semibold">Vertical Survival</p>
-          <p className="text-white/60 text-sm md:text-base">Collect rare coins and survive!</p>
+        <h1 className="text-5xl font-black text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-purple-400 mb-4">
+          COIN HUNT
+        </h1>
+        <p className="text-xl text-cyan-300 mb-2">Vertical Survival</p>
+        <p className="text-slate-400 mb-8">Collect rare Coins and survive!</p>
+
+        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-cyan-500/20">
+          <h2 className="text-lg font-bold text-white mb-4">How to Play</h2>
+          <ul className="text-left text-slate-300 space-y-2 text-sm">
+            <li>🎮 Use Arrow Keys or WASD to move</li>
+            <li>💎 Collect colored Coin loot</li>
+            <li>⚡ Power-ups: Speed, Magnet, Time (+10s)</li>
+            <li>🔥 Build combos for multipliers!</li>
+            <li>🧱 Avoid gray obstacles!</li>
+            <li>🤖 Escape the red AI bot!</li>
+            <li>📈 Earn XP and level up!</li>
+            <li>⏱️ Survive</li>
+          </ul>
         </div>
 
         {/* Character Selection */}
@@ -260,7 +278,7 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
         <div className="space-y-2 md:space-y-3">
           <button
             onClick={startGame}
-            className="w-full bg-[#0A5EB0] text-white font-bold py-3 md:py-4 px-6 md:px-8 rounded-xl md:rounded-2xl text-base md:text-xl hover:bg-[#0A5EB0]/90 active:scale-95 transition-all duration-200 shadow-lg shadow-[#0A5EB0]/30"
+            className="w-full bg-linear-to-r from-cyan-500 to-purple-500 text-white font-bold py-4 px-8 rounded-xl text-xl hover:scale-105 transition-transform cursor-pointer shadow-md shadow-cyan-500/50"
           >
             START GAME
           </button>
@@ -276,7 +294,9 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
               onClick={() => setShowLeaderboard(!showLeaderboard)}
               className="flex-1 bg-white/5 text-white font-semibold py-2.5 md:py-3 px-4 rounded-xl hover:bg-white/10 active:scale-95 transition-all duration-200 border border-white/10"
             >
-              <span className="text-xs md:text-sm">{showLeaderboard ? "Hide" : "View"} Leaderboard</span>
+              <span className="text-xs md:text-sm">
+                {showLeaderboard ? "Hide" : "View"} Leaderboard
+              </span>
             </button>
           </div>
         </div>
@@ -320,7 +340,9 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
                         </div>
                       </div>
                     </div>
-                    <div className="text-[#0A5EB0] font-bold text-sm md:text-base">{entry.score}</div>
+                    <div className="text-[#0A5EB0] font-bold text-sm md:text-base">
+                      {entry.score}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -348,31 +370,45 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
 
             {/* Modal Content */}
             <div className="pr-8">
-              <h2 className="text-lg md:text-xl font-bold text-white mb-4">How to Play</h2>
+              <h2 className="text-lg md:text-xl font-bold text-white mb-4">
+                How to Play
+              </h2>
               <ul className="space-y-2 text-white/80 text-sm">
                 <li className="flex items-start gap-2">
                   <span className="text-[#0A5EB0]">•</span>
-                  <span><strong>Move:</strong> Arrow Keys or WASD</span>
+                  <span>
+                    <strong>Move:</strong> Arrow Keys or WASD
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#0A5EB0]">•</span>
-                  <span><strong>Collect</strong> colored coins</span>
+                  <span>
+                    <strong>Collect</strong> colored coins
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#0A5EB0]">•</span>
-                  <span><strong>Avoid</strong> gray obstacles</span>
+                  <span>
+                    <strong>Avoid</strong> gray obstacles
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#0A5EB0]">•</span>
-                  <span><strong>Escape</strong> the red AI bot</span>
+                  <span>
+                    <strong>Escape</strong> the red AI bot
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#0A5EB0]">•</span>
-                  <span><strong>Power-ups:</strong> Speed, Magnet, Time</span>
+                  <span>
+                    <strong>Power-ups:</strong> Speed, Magnet, Time
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#0A5EB0]">•</span>
-                  <span><strong>Survive</strong> 60 seconds</span>
+                  <span>
+                    <strong>Survive</strong> 60 seconds
+                  </span>
                 </li>
               </ul>
             </div>
@@ -383,4 +419,4 @@ const NFTHuntMenu: React.FC<NFTHuntMenuProps> = ({
   );
 };
 
-export default NFTHuntMenu;
+export default CoinHuntMenu;

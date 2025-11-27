@@ -13,12 +13,13 @@ import {
   PersonStanding,
 } from "lucide-react";
 import { roomService } from "@/services/roomService";
-import { playerService } from "@/services/playerService";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlayerStore } from "@/store/playerStore";
 import { Account } from "@/components/layout/Account";
+import { useAccount } from "wagmi";
 import GameBrowser from "@/components/game/GameBrowser";
 import { supabase } from "@/lib/supabase";
+import { useRoom } from "@/hooks/useRoom";
 
 const buttonBase =
   "inline-flex items-center justify-center gap-3 h-16 px-8 rounded-2xl text-lg font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0";
@@ -80,13 +81,18 @@ const Home = () => {
             .select("coins")
             .eq("id", user.id)
             .single();
-          
+
           if (error) {
-            console.error("Error fetching coins:", error);
-            // If user doesn't exist yet, set default coins
+            console.error(
+              "Error fetching coins:",
+              error,
+              JSON.stringify(error)
+            );
+            // If user doesn't exist yet (PGRST116) or other error, handle gracefully
             if (error.code === "PGRST116") {
               setCoins(100);
             } else {
+              // For other errors, still default to 0 but log it
               setCoins(0);
             }
           } else if (data) {
@@ -140,6 +146,98 @@ const Home = () => {
     }
   }, [user]);
 
+  // Wallet connection reward logic
+  const { isConnected, address } = useAccount();
+
+  useEffect(() => {
+    const handleWalletReward = async () => {
+      if (user && isConnected && address) {
+        const rewardKey = `wallet_reward_${user.id}_${address}`;
+        const hasClaimed = localStorage.getItem(rewardKey);
+
+        if (!hasClaimed) {
+          console.log("Wallet connected! Rewarding 100 coins...");
+
+          // Optimistic update
+          // Use functional update to ensure we have the latest state
+          setCoins((prevCoins) => {
+            const currentCoins = prevCoins || 0;
+            const newCoins = currentCoins + 100;
+
+            // Update database inside the callback or after?
+            // Better to do it outside, but we need the value.
+            // Let's just calculate it based on 'coins' state which should be fresh enough or use the functional update for state and a separate read for DB?
+            // Actually, let's just use the state value.
+            return newCoins;
+          });
+
+          // We need the new value for DB update.
+          // Let's just assume coins + 100 for DB update to be safe, or fetch fresh?
+          // Simplest:
+          const newCoinsVal = (coins || 0) + 100;
+
+          // Mark as claimed locally to prevent loops
+          localStorage.setItem(rewardKey, "true");
+
+          try {
+            // Update database - use upsert to handle case where user record doesn't exist yet
+            const { error } = await supabase
+              .from("users")
+              .upsert({
+                id: user.id,
+                coins: newCoinsVal,
+                email: user.email, // Include email as it might be required for new records
+              })
+              .select();
+
+            if (error) {
+              console.error(
+                "Error updating coins in DB:",
+                error,
+                JSON.stringify(error)
+              );
+            } else {
+              console.log("Coins updated in DB successfully");
+            }
+          } catch (err) {
+            console.error("Exception updating coins:", err);
+          }
+        }
+      }
+    };
+
+    handleWalletReward();
+  }, [user, isConnected, address, coins]); // Added coins to dependency to ensure we have fresh value, but hasClaimed protects loop.
+
+  // Room / Party Logic
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+
+  const { room } = useRoom(roomCode || undefined, true); // Use roomCode directly
+
+  const isRoomHost =
+    typeof window !== "undefined" &&
+    room?.host_id === localStorage.getItem("hostId");
+
+  useEffect(() => {
+    const code = localStorage.getItem("currentRoomCode");
+    if (code) {
+      setRoomCode(code);
+    }
+  }, []);
+
+  useEffect(() => {
+    console.log("🔍 Room status check:", {
+      status: room?.status,
+      roomCode,
+      room,
+    });
+
+    if (room?.status === "playing" && roomCode) {
+      console.log("✅ Redirecting to game with code:", roomCode);
+      router.push(`/game?code=${roomCode}`);
+    }
+  }, [room?.status, roomCode, router, room]);
+
   const handleHostGame = async () => {
     setLoading(true);
 
@@ -154,17 +252,8 @@ const Home = () => {
     try {
       const room = await roomService.createRoom(hostId);
       if (room) {
-        // Join as Host
-        const player = await playerService.joinRoom(room.id, "Host");
-        if (player) {
-          localStorage.setItem("playerId", player.id);
-          setCurrentPlayerId(player.id);
-          // Host is always ready
-          await playerService.toggleReady(player.id, true);
-          router.push(`/lobby/${room.code}`);
-        } else {
-          alert("Failed to join room as host");
-        }
+        // Just navigate to lobby as host (don't join as player)
+        router.push(`/lobby/${room.code}`);
       } else {
         alert("Failed to create room");
       }
@@ -175,6 +264,67 @@ const Home = () => {
       setLoading(false);
     }
   };
+
+  const handleStartSelectedGame = async (gameId: string) => {
+    if (!room?.id) return;
+
+    // Get current player ID
+    let playerId = localStorage.getItem("playerId");
+
+    // If admin hasn't joined as a player yet, join them now
+    if (!playerId) {
+      const hostId = localStorage.getItem("hostId");
+      if (hostId && room.host_id === hostId) {
+        // Admin is the host, join them as a player
+        try {
+          const { playerService } = await import("@/services/playerService");
+          const player = await playerService.joinRoom(room.id, "Host");
+          if (player) {
+            playerId = player.id;
+            localStorage.setItem("playerId", player.id);
+            setCurrentPlayerId(player.id);
+            // Mark admin as ready
+            await playerService.toggleReady(player.id, true);
+          } else {
+            alert("Failed to join as player");
+            return;
+          }
+        } catch (error) {
+          console.error("Error joining as player:", error);
+          alert("Failed to join as player");
+          return;
+        }
+      } else {
+        alert("You must join the room first");
+        return;
+      }
+    }
+
+    // Check if user is admin
+    if (room.admin_id !== playerId) {
+      alert("Only the admin can select a game");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Select the game
+      await roomService.selectGame(room.id, gameId, playerId);
+
+      // Start the game
+      await roomService.startGame(room.id);
+      // The useEffect will handle redirect when status becomes "playing"
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Failed to start game");
+      setLoading(false);
+    }
+  };
+
+  // Check if current user is admin
+  const currentPlayerId =
+    typeof window !== "undefined" ? localStorage.getItem("playerId") : null;
+  const isAdmin = currentPlayerId && room?.admin_id === currentPlayerId;
 
   const handleProfileAction = () => {
     if (authLoading) return;
@@ -223,7 +373,7 @@ const Home = () => {
               className={`${outlineButton} h-16 px-6 text-base uppercase tracking-[0.3em]`}
             >
               <Swords className="h-4 w-4 text-[#64ccc5]" />
-              <span className="min-w-[4rem] text-center">
+              <span className="min-w-16 text-center">
                 {gameCategories[currentCategoryIndex]}
               </span>
             </button>
@@ -244,7 +394,9 @@ const Home = () => {
                 <p className="text-[9px] md:text-xs uppercase tracking-[0.4em] text-white/60">
                   Coins
                 </p>
-                <p className="text-base md:text-2xl font-bold text-white">{coins}</p>
+                <p className="text-base md:text-2xl font-bold text-white">
+                  {coins}
+                </p>
               </div>
             </div>
             <button
@@ -301,26 +453,90 @@ const Home = () => {
           <Account />
         </header>
 
-        <main className="flex flex-1 flex-col items-center justify-center text-center px-4 py-8 md:py-12">
-          {/* Mobile: Show only ARD ARENA */}
-          <div className="mb-6 md:hidden">
-            <p className="text-2xl md:text-xs uppercase tracking-[0.6em] text-white/60">
-              ARD ARENA
-            </p>
-            <p className="text-sm mt-2 uppercase tracking-[0.1em] text-[#64ccc5]">
-              Mini Games - Major Fun
-            </p>
-          </div>
-          
-          {/* Desktop: Keep original hero design */}
-          <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center">
-            <p className="text-sm uppercase tracking-[0.7em] text-white/60">
-              Get Ready
-            </p>
-          </div>
+        <main className="flex flex-1 flex-col items-center justify-center text-center px-4 py-40 md:py-60">
+          {/* If user is in a room */}
+          {room && roomCode ? (
+            <div className="mb-6 flex flex-col items-center gap-8">
+              <div>
+                <p className="text-2xl md:text-xs uppercase tracking-[0.6em] text-white/60">
+                  ROOM {roomCode}
+                </p>
+                {isAdmin ? (
+                  <>
+                    <p className="text-xl md:text-3xl mt-4 font-black text-[#64ccc5] uppercase tracking-widest">
+                      You are the Admin
+                    </p>
+                    <p className="text-sm mt-2 uppercase tracking-widest text-white/60">
+                      Select a game below to start
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xl md:text-3xl mt-4 font-black text-white uppercase tracking-widest">
+                      Waiting for Admin
+                    </p>
+                    <p className="text-sm mt-2 uppercase tracking-widest text-[#64ccc5]">
+                      The admin will select a game soon...
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Mobile: Show only ARD ARENA */}
+              <div className="mb-6 md:hidden flex flex-col items-center gap-8">
+                <div>
+                  <p className="text-2xl md:text-xs uppercase tracking-[0.6em] text-white/60">
+                    ARD ARENA
+                  </p>
+                  <p className="text-sm mt-2 uppercase tracking-widest text-[#64ccc5]">
+                    Mini Games - Major Fun
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => router.push("/join")}
+                  className={`${accentButton} w-full max-w-[280px] h-14 text-base shadow-[0_0_20px_rgba(100,204,197,0.3)] hover:shadow-[0_0_30px_rgba(100,204,197,0.5)]`}
+                >
+                  <Gamepad2 className="w-5 h-5" />
+                  <span>JOIN ROOM</span>
+                </button>
+              </div>
+
+              {/* Desktop: Keep original hero design */}
+              <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center">
+                <p className="text-sm uppercase tracking-[0.7em] text-white/60 mb-8">
+                  Get Ready
+                </p>
+                <button
+                  onClick={handleHostGame}
+                  disabled={loading}
+                  className={`${accentButton} min-w-[240px] hover:scale-105 active:scale-95 cursor-pointer`}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span>CREATING...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Gamepad2 className="w-6 h-6" />
+                      <span>PLAY NOW</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
         </main>
 
-        <GameBrowser />
+        {/* Show GameBrowser only if admin or not in a room */}
+        {(!room || isAdmin) && (
+          <GameBrowser
+            onGameSelect={isAdmin ? handleStartSelectedGame : undefined}
+          />
+        )}
 
         <footer className="flex flex-wrap items-center justify-center gap-4 px-4 py-8 md:px-12">
           <p className="text-sm text-white/60">

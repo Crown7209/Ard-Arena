@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { User as DbUser } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
-import { Trophy, Medal, User as UserIcon, Star, ArrowLeft, Swords, Palette } from "lucide-react";
+import {
+  Trophy,
+  Medal,
+  User as UserIcon,
+  Star,
+  ArrowLeft,
+  Swords,
+  Palette,
+} from "lucide-react";
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -34,15 +42,19 @@ export default function LeaderboardPage() {
       }
 
       // Fetch Top 10 for Color Match - sorted by points
-      const { data: colorMatchTopUsers, error: colorMatchError } = await supabase
-        .from("users")
-        .select("*")
-        .gt("color_match_points", 0) // Only users who have points
-        .order("color_match_points", { ascending: false })
-        .limit(10);
+      const { data: colorMatchTopUsers, error: colorMatchError } =
+        await supabase
+          .from("users")
+          .select("*")
+          .gt("color_match_points", 0) // Only users who have points
+          .order("color_match_points", { ascending: false })
+          .limit(10);
 
       if (colorMatchError) {
-        console.error("Error fetching color match leaderboard:", colorMatchError);
+        console.error(
+          "Error fetching color match leaderboard. Ensure 'color_match_points' column exists in 'users' table.",
+          JSON.stringify(colorMatchError, null, 2)
+        );
       } else {
         setColorMatchUsers(colorMatchTopUsers || []);
       }
@@ -78,7 +90,11 @@ export default function LeaderboardPage() {
     };
   }, [authUser]);
 
-  const renderLeaderboard = (gameName: string, gameIcon: React.ReactNode, gameUsers: DbUser[]) => {
+  const renderLeaderboard = (
+    gameName: string,
+    gameIcon: React.ReactNode,
+    gameUsers: DbUser[]
+  ) => {
     return (
       <div className="mb-6 md:mb-8">
         <div className="flex items-center gap-3 mb-4">
@@ -128,13 +144,22 @@ export default function LeaderboardPage() {
                         }`}
                       >
                         {index === 0 && (
-                          <Medal className="w-5 h-5 md:w-8 md:h-8" style={{ color: medalColor ?? undefined }} />
+                          <Medal
+                            className="w-5 h-5 md:w-8 md:h-8"
+                            style={{ color: medalColor ?? undefined }}
+                          />
                         )}
                         {index === 1 && (
-                          <Medal className="w-5 h-5 md:w-8 md:h-8" style={{ color: medalColor ?? undefined }} />
+                          <Medal
+                            className="w-5 h-5 md:w-8 md:h-8"
+                            style={{ color: medalColor ?? undefined }}
+                          />
                         )}
                         {index === 2 && (
-                          <Medal className="w-5 h-5 md:w-8 md:h-8" style={{ color: medalColor ?? undefined }} />
+                          <Medal
+                            className="w-5 h-5 md:w-8 md:h-8"
+                            style={{ color: medalColor ?? undefined }}
+                          />
                         )}
                         {index > 2 && `#${index + 1}`}
                       </div>
@@ -163,7 +188,9 @@ export default function LeaderboardPage() {
                           >
                             {user.username || user.email.split("@")[0]}{" "}
                             {isMe && (
-                              <span className="text-[10px] md:text-xs">(You)</span>
+                              <span className="text-[10px] md:text-xs">
+                                (You)
+                              </span>
                             )}
                           </div>
                           <div className="text-[9px] md:text-xs text-white/60 uppercase tracking-wider font-medium">
@@ -186,8 +213,8 @@ export default function LeaderboardPage() {
                         }`}
                         style={medalColor ? { color: medalColor } : {}}
                       >
-                        {gameName === "Color Match" 
-                          ? (user.color_match_points || 0)
+                        {gameName === "Color Match"
+                          ? user.color_match_points || 0
                           : user.wins}
                       </div>
                       <div className="text-[9px] md:text-xs text-white/60 uppercase tracking-wider font-medium">
@@ -288,7 +315,9 @@ export default function LeaderboardPage() {
                     <Star className="w-4 h-4 md:w-5 md:h-5 fill-current" />
                   </div>
                   <div>
-                    <div className="font-bold text-xs md:text-base text-white">Your Stats</div>
+                    <div className="font-bold text-xs md:text-base text-white">
+                      Your Stats
+                    </div>
                     <div className="text-[10px] md:text-sm text-white/60">
                       {currentUserStats.username ||
                         currentUserStats.email.split("@")[0]}

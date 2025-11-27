@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Joystick from "./Joystick";
 
-interface NFTHuntPlayingProps {
+interface CoinHuntPlayingProps {
   score: number;
   timer: number;
   playerLevel: number;
@@ -22,7 +22,7 @@ interface NFTHuntPlayingProps {
   CANVAS_HEIGHT: number;
 }
 
-const NFTHuntPlaying: React.FC<NFTHuntPlayingProps> = ({
+const CoinHuntPlaying: React.FC<CoinHuntPlayingProps> = ({
   score,
   timer,
   playerLevel,
@@ -131,4 +131,4 @@ const NFTHuntPlaying: React.FC<NFTHuntPlayingProps> = ({
   );
 };
 
-export default NFTHuntPlaying;
+export default CoinHuntPlaying;

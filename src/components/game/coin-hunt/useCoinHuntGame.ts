@@ -22,7 +22,7 @@ const XP_TO_LEVEL = (level: number) =>
   Math.floor(100 * Math.pow(1.5, level - 1));
 const COIN_COST_TO_RESUME = 20;
 
-export const useNFTHuntGame = (selectedCharacter: string = "char1") => {
+export const useCoinHuntGame = (selectedCharacter: string = "char1") => {
   const { user: authUser } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<"menu" | "playing" | "gameover">(
@@ -87,6 +87,17 @@ export const useNFTHuntGame = (selectedCharacter: string = "char1") => {
     playerXP: number;
   } | null>(null);
 
+  // Load saved player data from localStorage
+  useEffect(() => {
+    const savedLevel = localStorage.getItem("coin_hunt_level");
+    const savedXP = localStorage.getItem("coin_hunt_xp");
+    const savedLeaderboard = localStorage.getItem("coin_hunt_leaderboard");
+
+    if (savedLevel) setPlayerLevel(parseInt(savedLevel));
+    if (savedXP) setPlayerXP(parseInt(savedXP));
+    if (savedLeaderboard) setLeaderboard(JSON.parse(savedLeaderboard));
+  }, []);
+
   const COIN_TYPES = [
     { name: "Diamond", color: "#60A5FA", emoji: "💎" },
     { name: "Gold", color: "#FBBF24", emoji: "🪙" },
@@ -113,21 +124,15 @@ export const useNFTHuntGame = (selectedCharacter: string = "char1") => {
     };
 
     const botImg = new Image();
-    botImg.src = "/images/monster.png";
+    botImg.src = `/images/monster.png`;
     botImg.onload = () => {
       botImageRef.current = botImg;
     };
+    botImg.onerror = () => {
+      console.warn("Failed to load bot image");
+      botImageRef.current = null; // Fallback to rectangle
+    };
   }, [selectedCharacter]);
-
-  useEffect(() => {
-    const savedLevel = localStorage.getItem("coin_hunt_level");
-    const savedXP = localStorage.getItem("coin_hunt_xp");
-    const savedLeaderboard = localStorage.getItem("coin_hunt_leaderboard");
-
-    if (savedLevel) setPlayerLevel(parseInt(savedLevel));
-    if (savedXP) setPlayerXP(parseInt(savedXP));
-    if (savedLeaderboard) setLeaderboard(JSON.parse(savedLeaderboard));
-  }, []);
 
   const savePlayerData = () => {
     localStorage.setItem("coin_hunt_level", playerLevel.toString());
@@ -753,7 +758,9 @@ export const useNFTHuntGame = (selectedCharacter: string = "char1") => {
 
     const currentCoins = data?.coins || 0;
     if (currentCoins < amount) {
-      alert(`You need ${amount} coins to resume. You have ${currentCoins} coins.`);
+      alert(
+        `You need ${amount} coins to resume. You have ${currentCoins} coins.`
+      );
       return false;
     }
 
@@ -804,7 +811,7 @@ export const useNFTHuntGame = (selectedCharacter: string = "char1") => {
     setSpeedBoostActive(false);
     setMagnetActive(false);
     setPlayerSpeed(BASE_PLAYER_SPEED);
-    
+
     playerPos.current = {
       x: CANVAS_WIDTH / 2 - PLAYER_SIZE / 2,
       y: CANVAS_HEIGHT - 100,
