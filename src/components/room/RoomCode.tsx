@@ -6,8 +6,27 @@ interface RoomCodeProps {
 }
 
 export function RoomCode({ code }: RoomCodeProps) {
-  const copyCode = () => {
-    navigator.clipboard.writeText(code);
+  const copyCode = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(code);
+        alert("Code copied to clipboard!");
+      } else {
+        // Fallback for non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = code;
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        alert("Code copied to clipboard!");
+      }
+    } catch (err) {
+      console.error("Failed to copy code:", err);
+      alert("Failed to copy code manually");
+    }
   };
 
   return (

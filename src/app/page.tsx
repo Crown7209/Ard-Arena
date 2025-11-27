@@ -4,14 +4,18 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { roomService } from "@/services/roomService";
+import { playerService } from "@/services/playerService";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { Loader2, MonitorPlay, Smartphone, Gamepad2 } from "lucide-react";
+
+import { usePlayerStore } from "@/store/playerStore";
 
 export default function Home() {
   const router = useRouter();
   const { isMobile } = useDeviceType();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { setCurrentPlayerId } = usePlayerStore();
 
   useEffect(() => {
     setMounted(true);
@@ -19,13 +23,29 @@ export default function Home() {
 
   const handleHostGame = async () => {
     setLoading(true);
+
+    // Clear previous session data
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("currentRoomCode");
+    setCurrentPlayerId(null);
+
     const hostId = Math.random().toString(36).substring(7);
     localStorage.setItem("hostId", hostId);
 
     try {
       const room = await roomService.createRoom(hostId);
       if (room) {
-        router.push(`/lobby/${room.code}`);
+        // Join as Host
+        const player = await playerService.joinRoom(room.id, "Host");
+        if (player) {
+          localStorage.setItem("playerId", player.id);
+          setCurrentPlayerId(player.id);
+          // Host is always ready
+          await playerService.toggleReady(player.id, true);
+          router.push(`/lobby/${room.code}`);
+        } else {
+          alert("Failed to join room as host");
+        }
       } else {
         alert("Failed to create room");
       }
@@ -37,7 +57,7 @@ export default function Home() {
     }
   };
 
-  if (!mounted) return null; // Prevent hydration mismatch
+  if (!mounted) return null;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-white p-4 overflow-hidden relative">

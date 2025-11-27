@@ -26,8 +26,10 @@ export abstract class BaseController {
   protected opponents: Map<string, Fighter> = new Map();
   public arena: Arena;
   protected callbacks: GameCallbacks;
+  protected options: GameOptions;
 
   constructor(options: GameOptions) {
+    this.options = options;
     this.callbacks = options.callbacks || {};
     this.initializeFighters(options.fighters);
     const arenaOptions: ArenaOptions = {
@@ -82,6 +84,7 @@ export abstract class BaseController {
         f.setMove(MoveType.STAND);
         current += 1;
         if (current === total) {
+          if (!self.arena) return;
           self.arena.init();
           self.setFightersArena();
           self.initialize();

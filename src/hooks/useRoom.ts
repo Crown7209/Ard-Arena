@@ -4,8 +4,11 @@ import { useRoomStore } from "@/store/roomStore";
 import { Room } from "@/lib/types";
 
 export function useRoom(roomId?: string) {
-  const { room, setRoom, updateRoom } = useRoomStore();
+  const { room: storedRoom, setRoom, updateRoom } = useRoomStore();
   const [loading, setLoading] = useState(false);
+
+  // Prevent returning stale room data
+  const room = storedRoom?.id === roomId ? storedRoom : null;
 
   useEffect(() => {
     if (!roomId) return;
@@ -13,6 +16,11 @@ export function useRoom(roomId?: string) {
     // Initial fetch
     const fetchRoom = async () => {
       setLoading(true);
+      // Clear stale data from store if IDs don't match
+      if (storedRoom?.id !== roomId) {
+        setRoom(null);
+      }
+
       const { data } = await supabase
         .from("rooms")
         .select("*")
@@ -45,7 +53,7 @@ export function useRoom(roomId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, setRoom, updateRoom]);
+  }, [roomId, setRoom, updateRoom]); // Removed storedRoom from deps to avoid loop
 
   return { room, loading };
 }

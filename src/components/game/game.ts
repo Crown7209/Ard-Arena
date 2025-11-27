@@ -9,14 +9,21 @@ import {
   NetworkController,
   type NetworkGameOptions,
 } from "./core/controllers/networkController";
+import {
+  RealtimeController,
+  type RealtimeGameOptions,
+} from "./core/controllers/realtimeController";
 
-export type GameType = "basic" | "network" | "multiplayer";
+export type GameType = "basic" | "network" | "multiplayer" | "realtime";
 
 export interface StartOptions extends GameOptions {
   gameType?: GameType;
   isHost?: boolean;
   gameName?: string;
   transport?: any;
+  roomId?: string;
+  playerId?: string;
+  playerIndex?: number;
 }
 
 let game: BaseController | null = null;
@@ -34,6 +41,9 @@ export function start(options: StartOptions): GamePromise {
       break;
     case "multiplayer":
       game = new MultiplayerController(options);
+      break;
+    case "realtime":
+      game = new RealtimeController(options as RealtimeGameOptions);
       break;
     default:
       game = new BasicController(options);

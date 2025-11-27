@@ -8,7 +8,7 @@ interface PlayerState {
   addPlayer: (player: Player) => void;
   removePlayer: (playerId: string) => void;
   updatePlayer: (playerId: string, updates: Partial<Player>) => void;
-  setCurrentPlayerId: (id: string) => void;
+  setCurrentPlayerId: (id: string | null) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set) => ({
