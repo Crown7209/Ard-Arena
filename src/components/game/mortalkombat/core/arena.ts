@@ -420,7 +420,8 @@ export class Arena {
         // Adjust Y position to keep bottom aligned (move up by the height difference)
         const yOffset = state.height * (scaleFactor - 1);
         // Additional offset to move characters higher on screen (mobile only)
-        const heightAdjustment = isMobile ? 300 * scaleRatio : 0; // Only apply on mobile
+        // Increased to 800 to place characters significantly higher and adjust all movement/spacing/range
+        const heightAdjustment = isMobile ? 800 * scaleRatio : 0; // Only apply on mobile
         // Scale fighter positions
         const fighterX = f.getX() * scaleRatio;
         const fighterY = (f.getY() - yOffset - heightAdjustment) * scaleRatio;

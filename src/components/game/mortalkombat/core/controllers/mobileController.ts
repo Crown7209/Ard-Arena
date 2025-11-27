@@ -125,16 +125,17 @@ export class MobileController {
     const rightSide = document.createElement('div');
     rightSide.className = 'controller-right';
 
-    // Action buttons (ASDF)
-    const buttonA = this.createButton('A', KEYS.HP, 'action-btn btn-a');
-    const buttonS = this.createButton('S', KEYS.LP, 'action-btn btn-s');
-    const buttonD = this.createButton('D', KEYS.LK, 'action-btn btn-d');
-    const buttonF = this.createButton('F', KEYS.HK, 'action-btn btn-f');
+    // Action buttons in diamond shape: X (top), Y (left), A (right), B (bottom)
+    // Mapping: X=A(HP), Y=S(LP), A=F(HK), B=D(LK)
+    const buttonX = this.createButton('X', KEYS.HP, 'action-btn btn-x'); // Top - HP
+    const buttonY = this.createButton('Y', KEYS.LP, 'action-btn btn-y'); // Left - LP
+    const buttonA = this.createButton('A', KEYS.HK, 'action-btn btn-a'); // Right - HK
+    const buttonB = this.createButton('B', KEYS.LK, 'action-btn btn-b'); // Bottom - LK
 
+    rightSide.appendChild(buttonX);
+    rightSide.appendChild(buttonY);
     rightSide.appendChild(buttonA);
-    rightSide.appendChild(buttonS);
-    rightSide.appendChild(buttonD);
-    rightSide.appendChild(buttonF);
+    rightSide.appendChild(buttonB);
 
     return rightSide;
   }
@@ -195,18 +196,21 @@ export class MobileController {
   }
 
   private handleTouch(keyCode: number, pressed: boolean): void {
-    const touchButton = this.touchButtons.get(keyCode);
-    if (!touchButton) return;
-
-    touchButton.isPressed = pressed;
+    // Update pressed state for all keys (movement and action buttons)
     this.pressed[keyCode] = pressed;
 
-    if (pressed) {
-      touchButton.element.classList.add('pressed');
-    } else {
-      touchButton.element.classList.remove('pressed');
+    // Only update visual state for action buttons (they're in touchButtons map)
+    const touchButton = this.touchButtons.get(keyCode);
+    if (touchButton) {
+      touchButton.isPressed = pressed;
+      if (pressed) {
+        touchButton.element.classList.add('pressed');
+      } else {
+        touchButton.element.classList.remove('pressed');
+      }
     }
 
+    // Always call onKeyPress for both movement and action keys
     this.onKeyPress(keyCode, pressed);
   }
 
@@ -220,7 +224,7 @@ export class MobileController {
     let centerY = 0;
     let radius = 0;
     const deadZone = 15; // Minimum distance to trigger movement
-    const maxDistance = 50; // Maximum drag distance
+    const maxDistance = 45; // Maximum drag distance (slightly reduced to keep handle visible)
 
     const updateJoystickPosition = (clientX: number, clientY: number) => {
       const rect = container.getBoundingClientRect();
@@ -239,7 +243,9 @@ export class MobileController {
       const handleX = Math.cos(angle) * limitedDistance;
       const handleY = Math.sin(angle) * limitedDistance;
 
-      handle.style.transform = `translate(${handleX}px, ${handleY}px)`;
+      // Position handle to follow finger - use pixel values directly since handle is already centered
+      handle.style.transform = `translate(calc(-50% + ${handleX}px), calc(-50% + ${handleY}px))`;
+      handle.style.transition = 'none'; // Disable transition while dragging for immediate response
 
       // Determine movement direction
       const absX = Math.abs(deltaX);
@@ -312,8 +318,10 @@ export class MobileController {
     const handleTouchEnd = () => {
       if (isDragging) {
         isDragging = false;
-        // Reset handle position
-        handle.style.transform = 'translate(0, 0)';
+        // Re-enable transition for smooth return to center
+        handle.style.transition = 'transform 0.1s ease-out';
+        // Reset handle position to center
+        handle.style.transform = 'translate(-50%, -50%)';
         // Release all keys
         this.handleTouch(KEYS.UP, false);
         this.handleTouch(KEYS.DOWN, false);
