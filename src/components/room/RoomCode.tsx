@@ -35,7 +35,7 @@ export function RoomCode({ code }: RoomCodeProps) {
         Room Code
       </span>
       <div className="flex items-center gap-4 bg-gray-800/50 px-8 py-4 rounded-2xl border border-gray-700">
-        <div className="text-7xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 tracking-[0.2em]">
+        <div className="text-7xl font-mono font-black text-[#64ccc5] tracking-[0.2em]">
           {code}
         </div>
         <Button

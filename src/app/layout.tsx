@@ -17,8 +17,6 @@ export const metadata: Metadata = {
   description: "Real-time multiplayer gaming platform",
 };
 
-import { Header } from "@/components/layout/Header";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,8 +27,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-white`}
       >
-        <Header />
-        <main className="pt-16 min-h-screen">{children}</main>
+        <main className="min-h-screen">{children}</main>
       </body>
     </html>
   );
