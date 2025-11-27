@@ -7,10 +7,12 @@ import {
   AIBot,
   LeaderboardEntry,
 } from "./types";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 
-const CANVAS_WIDTH = 400;
-const CANVAS_HEIGHT = 800;
-const PLAYER_SIZE = 30;
+const CANVAS_WIDTH = 600; // Increased from 400 to accommodate larger characters
+const CANVAS_HEIGHT = 1000; // Increased from 800 to accommodate larger characters
+const PLAYER_SIZE = 65; // Increased to make characters more prominent and visible
 const LOOT_SIZE = 20;
 const POWERUP_SIZE = 25;
 const BASE_PLAYER_SPEED = 5;
@@ -18,8 +20,10 @@ const BASE_PLAYER_SPEED = 5;
 const XP_PER_POINT = 10;
 const XP_TO_LEVEL = (level: number) =>
   Math.floor(100 * Math.pow(1.5, level - 1));
+const COIN_COST_TO_RESUME = 20;
 
-export const useNFTHuntGame = () => {
+export const useNFTHuntGame = (selectedCharacter: string = "char1") => {
+  const { user: authUser } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<"menu" | "playing" | "gameover">(
     "menu"
@@ -28,6 +32,7 @@ export const useNFTHuntGame = () => {
   const [timer, setTimer] = useState(0);
   const [collectedLoot, setCollectedLoot] = useState<Loot[]>([]);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [canResume, setCanResume] = useState(false);
 
   const [combo, setCombo] = useState(0);
   const [comboMultiplier, setComboMultiplier] = useState(1);
@@ -37,6 +42,10 @@ export const useNFTHuntGame = () => {
   const [playerLevel, setPlayerLevel] = useState(1);
   const [playerXP, setPlayerXP] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+
+  // Character images
+  const playerImageRef = useRef<HTMLImageElement | null>(null);
+  const botImageRef = useRef<HTMLImageElement | null>(null);
 
   const playerPos = useRef<Position>({
     x: CANVAS_WIDTH / 2 - PLAYER_SIZE / 2,
@@ -69,7 +78,16 @@ export const useNFTHuntGame = () => {
   const obstacleInterval = useRef<NodeJS.Timeout | null>(null);
   const gameTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const NFT_TYPES = [
+  // Saved game state for resume
+  const savedGameState = useRef<{
+    collectedLoot: Loot[];
+    score: number;
+    timer: number;
+    playerLevel: number;
+    playerXP: number;
+  } | null>(null);
+
+  const COIN_TYPES = [
     { name: "Diamond", color: "#60A5FA", emoji: "💎" },
     { name: "Gold", color: "#FBBF24", emoji: "🪙" },
     { name: "Ruby", color: "#EF4444", emoji: "💍" },
@@ -77,10 +95,34 @@ export const useNFTHuntGame = () => {
     { name: "Sapphire", color: "#3B82F6", emoji: "🔵" },
   ];
 
+  // Load character images based on selection
   useEffect(() => {
-    const savedLevel = localStorage.getItem("nft_hunt_level");
-    const savedXP = localStorage.getItem("nft_hunt_xp");
-    const savedLeaderboard = localStorage.getItem("nft_hunt_leaderboard");
+    const playerImg = new Image();
+    const characterPath = `/images/${selectedCharacter}.png`;
+    playerImg.src = characterPath;
+    playerImg.onload = () => {
+      playerImageRef.current = playerImg;
+    };
+    playerImg.onerror = () => {
+      // Fallback to char1 if image fails to load
+      const fallbackImg = new Image();
+      fallbackImg.src = "/images/char1.png";
+      fallbackImg.onload = () => {
+        playerImageRef.current = fallbackImg;
+      };
+    };
+
+    const botImg = new Image();
+    botImg.src = "/images/monster.png";
+    botImg.onload = () => {
+      botImageRef.current = botImg;
+    };
+  }, [selectedCharacter]);
+
+  useEffect(() => {
+    const savedLevel = localStorage.getItem("coin_hunt_level");
+    const savedXP = localStorage.getItem("coin_hunt_xp");
+    const savedLeaderboard = localStorage.getItem("coin_hunt_leaderboard");
 
     if (savedLevel) setPlayerLevel(parseInt(savedLevel));
     if (savedXP) setPlayerXP(parseInt(savedXP));
@@ -88,8 +130,8 @@ export const useNFTHuntGame = () => {
   }, []);
 
   const savePlayerData = () => {
-    localStorage.setItem("nft_hunt_level", playerLevel.toString());
-    localStorage.setItem("nft_hunt_xp", playerXP.toString());
+    localStorage.setItem("coin_hunt_level", playerLevel.toString());
+    localStorage.setItem("coin_hunt_xp", playerXP.toString());
   };
 
   const addToLeaderboard = (score: number) => {
@@ -107,7 +149,7 @@ export const useNFTHuntGame = () => {
 
     setLeaderboard(updatedLeaderboard);
     localStorage.setItem(
-      "nft_hunt_leaderboard",
+      "coin_hunt_leaderboard",
       JSON.stringify(updatedLeaderboard)
     );
   };
@@ -125,7 +167,7 @@ export const useNFTHuntGame = () => {
   };
 
   const spawnLoot = () => {
-    const type = NFT_TYPES[Math.floor(Math.random() * NFT_TYPES.length)];
+    const type = COIN_TYPES[Math.floor(Math.random() * COIN_TYPES.length)];
     const newLoot: Loot = {
       id: lootIdCounter.current++,
       x: Math.random() * (CANVAS_WIDTH - LOOT_SIZE),
@@ -406,20 +448,34 @@ export const useNFTHuntGame = () => {
       ctx.setLineDash([]);
     }
 
-    ctx.fillStyle = speedBoostActiveRef.current ? "#FBBF24" : "#64CCC5";
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = speedBoostActiveRef.current ? "#FBBF24" : "#64CCC5";
-    ctx.fillRect(
-      playerPos.current.x,
-      playerPos.current.y,
-      PLAYER_SIZE,
-      PLAYER_SIZE
-    );
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = "#0F172A";
-    ctx.fillRect(playerPos.current.x + 8, playerPos.current.y + 10, 5, 5);
-    ctx.fillRect(playerPos.current.x + 17, playerPos.current.y + 10, 5, 5);
+    // Draw player character image
+    if (playerImageRef.current) {
+      ctx.shadowBlur = speedBoostActiveRef.current ? 20 : 15;
+      ctx.shadowColor = speedBoostActiveRef.current ? "#FBBF24" : "#64CCC5";
+      ctx.drawImage(
+        playerImageRef.current,
+        playerPos.current.x,
+        playerPos.current.y,
+        PLAYER_SIZE,
+        PLAYER_SIZE
+      );
+      ctx.shadowBlur = 0;
+    } else {
+      // Fallback to rectangle if image not loaded
+      ctx.fillStyle = speedBoostActiveRef.current ? "#FBBF24" : "#64CCC5";
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = speedBoostActiveRef.current ? "#FBBF24" : "#64CCC5";
+      ctx.fillRect(
+        playerPos.current.x,
+        playerPos.current.y,
+        PLAYER_SIZE,
+        PLAYER_SIZE
+      );
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#0F172A";
+      ctx.fillRect(playerPos.current.x + 8, playerPos.current.y + 10, 5, 5);
+      ctx.fillRect(playerPos.current.x + 17, playerPos.current.y + 10, 5, 5);
+    }
 
     if (comboMultiplier > 1) {
       ctx.fillStyle = "#FBBF24";
@@ -543,16 +599,30 @@ export const useNFTHuntGame = () => {
       ctx.globalAlpha = 1;
     }
 
+    // Draw bot character images
     aiBots.current.forEach((bot) => {
-      ctx.fillStyle = "#EF4444";
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = "#EF4444";
-      ctx.fillRect(bot.x, bot.y, PLAYER_SIZE, PLAYER_SIZE);
-      ctx.shadowBlur = 0;
-
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(bot.x + 8, bot.y + 10, 5, 5);
-      ctx.fillRect(bot.x + 17, bot.y + 10, 5, 5);
+      if (botImageRef.current) {
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "#EF4444";
+        ctx.drawImage(
+          botImageRef.current,
+          bot.x,
+          bot.y,
+          PLAYER_SIZE,
+          PLAYER_SIZE
+        );
+        ctx.shadowBlur = 0;
+      } else {
+        // Fallback to rectangle if image not loaded
+        ctx.fillStyle = "#EF4444";
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "#EF4444";
+        ctx.fillRect(bot.x, bot.y, PLAYER_SIZE, PLAYER_SIZE);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(bot.x + 8, bot.y + 10, 5, 5);
+        ctx.fillRect(bot.x + 17, bot.y + 10, 5, 5);
+      }
     });
 
     animationFrameId.current = requestAnimationFrame(gameLoop);
@@ -566,6 +636,10 @@ export const useNFTHuntGame = () => {
     if (timerInterval.current) clearInterval(timerInterval.current);
     if (animationFrameId.current)
       cancelAnimationFrame(animationFrameId.current);
+
+    // Clear saved game state when starting a new game
+    savedGameState.current = null;
+    setCanResume(false);
 
     setGameState("playing");
     setScore(0);
@@ -645,8 +719,154 @@ export const useNFTHuntGame = () => {
     if (obstacleInterval.current) clearInterval(obstacleInterval.current);
     if (gameTimeout.current) clearTimeout(gameTimeout.current);
 
+    // Save game state for resume
+    savedGameState.current = {
+      collectedLoot: [...collectedLoot],
+      score,
+      timer,
+      playerLevel,
+      playerXP,
+    };
+    setCanResume(true);
+
     addToLeaderboard(score);
     savePlayerData();
+  };
+
+  const checkAndDeductCoins = async (amount: number): Promise<boolean> => {
+    if (!authUser?.id) {
+      alert("Please log in to resume");
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("coins")
+      .eq("id", authUser.id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching coins:", error);
+      alert("Error checking coins");
+      return false;
+    }
+
+    const currentCoins = data?.coins || 0;
+    if (currentCoins < amount) {
+      alert(`You need ${amount} coins to resume. You have ${currentCoins} coins.`);
+      return false;
+    }
+
+    const newCoins = currentCoins - amount;
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ coins: newCoins })
+      .eq("id", authUser.id);
+
+    if (updateError) {
+      console.error("Error deducting coins:", updateError);
+      alert("Error deducting coins");
+      return false;
+    }
+
+    return true;
+  };
+
+  const resumeGame = async () => {
+    if (!savedGameState.current) {
+      alert("No saved game state found");
+      return;
+    }
+
+    const canResume = await checkAndDeductCoins(COIN_COST_TO_RESUME);
+    if (!canResume) {
+      return;
+    }
+
+    // Clear any existing intervals
+    if (lootInterval.current) clearInterval(lootInterval.current);
+    if (powerUpInterval.current) clearInterval(powerUpInterval.current);
+    if (obstacleInterval.current) clearInterval(obstacleInterval.current);
+    if (gameTimeout.current) clearTimeout(gameTimeout.current);
+    if (timerInterval.current) clearInterval(timerInterval.current);
+    if (animationFrameId.current)
+      cancelAnimationFrame(animationFrameId.current);
+
+    // Restore saved game state
+    const saved = savedGameState.current;
+    setScore(saved.score);
+    setTimer(0); // Start with fresh timer
+    setCollectedLoot(saved.collectedLoot); // Keep collected items
+    setPlayerLevel(saved.playerLevel);
+    setPlayerXP(saved.playerXP);
+    setCombo(0);
+    setComboMultiplier(1);
+    setSpeedBoostActive(false);
+    setMagnetActive(false);
+    setPlayerSpeed(BASE_PLAYER_SPEED);
+    
+    playerPos.current = {
+      x: CANVAS_WIDTH / 2 - PLAYER_SIZE / 2,
+      y: CANVAS_HEIGHT - 100,
+    };
+    loots.current = [];
+    powerUps.current = [];
+    obstacles.current = [];
+    aiBots.current = [];
+    lootIdCounter.current = 0;
+    powerUpIdCounter.current = 0;
+    obstacleIdCounter.current = 0;
+    aiBotIdCounter.current = 0;
+    lastBotSpawnTime.current = 0;
+    gameStartTime.current = Date.now();
+
+    joystickRef.current = { x: 0, y: 0 };
+    keys.current = {};
+    magnetActiveRef.current = false;
+    speedBoostActiveRef.current = false;
+
+    // Start game with restored state
+    setGameState("playing");
+
+    spawnAIBot();
+
+    for (let i = 0; i < 5; i++) {
+      spawnLoot();
+    }
+
+    for (let i = 0; i < 3; i++) {
+      spawnObstacle();
+    }
+
+    timerInterval.current = setInterval(() => {
+      setTimer((prev) => prev + 1);
+    }, 1000);
+
+    lootInterval.current = setInterval(() => {
+      if (loots.current.length < 10) {
+        spawnLoot();
+      }
+    }, 2000);
+
+    powerUpInterval.current = setInterval(() => {
+      if (powerUps.current.length < 2) {
+        spawnPowerUp();
+      }
+    }, 8000);
+
+    obstacleInterval.current = setInterval(() => {
+      if (obstacles.current.length < 5) {
+        spawnObstacle();
+      }
+    }, 10000);
+
+    // Start fresh 60-second timer
+    gameTimeout.current = setTimeout(() => {
+      endGame();
+    }, 60000);
+
+    animationFrameId.current = requestAnimationFrame(gameLoop);
+    setCanResume(false);
   };
 
   useEffect(() => {
@@ -698,6 +918,8 @@ export const useNFTHuntGame = () => {
     leaderboard,
     joystickRef,
     startGame,
+    resumeGame,
+    canResume,
     xpProgress,
     XP_TO_LEVEL,
     XP_PER_POINT,
