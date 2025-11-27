@@ -9,7 +9,8 @@ export class Walk extends CycleMove {
   }
 
   protected _action(): void {
-    this.owner.setX(this.owner.getX() + 20);
+    // Reduced step distance for slower, more controlled movement
+    this.owner.setX(this.owner.getX() + 12);
     this.owner.setY(CONFIG.PLAYER_TOP);
   }
 }
