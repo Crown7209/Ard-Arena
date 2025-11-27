@@ -64,9 +64,11 @@ export default function LobbyPage() {
   // 2. Watch for Game Start
   useEffect(() => {
     if (room?.status === "playing") {
-      router.push("/game");
+      // Save room code for game page
+      localStorage.setItem("currentRoomCode", code);
+      router.push(`/game?code=${code}`);
     }
-  }, [room?.status, router]);
+  }, [room?.status, router, code]);
 
   // Actions
   const handleStartGame = async () => {
@@ -117,7 +119,7 @@ export default function LobbyPage() {
             <RoomCode code={code} />
 
             {isHost && joinUrl && (
-              <div className="bg-white p-4 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+              <div className="bg-white p-4 rounded-xl">
                 <QRCodeSVG value={joinUrl} size={200} />
               </div>
             )}
