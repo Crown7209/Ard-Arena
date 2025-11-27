@@ -98,25 +98,25 @@ export class MobileController {
     const leftSide = document.createElement('div');
     leftSide.className = 'controller-left';
 
-    // D-pad container
-    const dpadContainer = document.createElement('div');
-    dpadContainer.className = 'dpad-container';
+    // Circular joystick container
+    const joystickContainer = document.createElement('div');
+    joystickContainer.className = 'joystick-container';
+    
+    // Joystick base (circular background)
+    const joystickBase = document.createElement('div');
+    joystickBase.className = 'joystick-base';
+    
+    // Joystick handle (the draggable part)
+    const joystickHandle = document.createElement('div');
+    joystickHandle.className = 'joystick-handle';
+    
+    joystickContainer.appendChild(joystickBase);
+    joystickContainer.appendChild(joystickHandle);
+    
+    // Setup drag gestures for the joystick
+    this.setupJoystickDrag(joystickContainer, joystickHandle);
 
-    // D-pad buttons
-    const dpadUp = this.createButton('↑', KEYS.UP, 'dpad-btn dpad-up');
-    const dpadDown = this.createButton('↓', KEYS.DOWN, 'dpad-btn dpad-down');
-    const dpadLeft = this.createButton('←', KEYS.LEFT, 'dpad-btn dpad-left');
-    const dpadRight = this.createButton('→', KEYS.RIGHT, 'dpad-btn dpad-right');
-    const dpadCenter = document.createElement('div');
-    dpadCenter.className = 'dpad-center';
-
-    dpadContainer.appendChild(dpadUp);
-    dpadContainer.appendChild(dpadDown);
-    dpadContainer.appendChild(dpadLeft);
-    dpadContainer.appendChild(dpadRight);
-    dpadContainer.appendChild(dpadCenter);
-
-    leftSide.appendChild(dpadContainer);
+    leftSide.appendChild(joystickContainer);
 
     return leftSide;
   }
@@ -212,6 +212,137 @@ export class MobileController {
 
   public getPressedKeys(): Record<number, boolean> {
     return { ...this.pressed };
+  }
+
+  private setupJoystickDrag(container: HTMLElement, handle: HTMLElement): void {
+    let isDragging = false;
+    let centerX = 0;
+    let centerY = 0;
+    let radius = 0;
+    const deadZone = 15; // Minimum distance to trigger movement
+    const maxDistance = 50; // Maximum drag distance
+
+    const updateJoystickPosition = (clientX: number, clientY: number) => {
+      const rect = container.getBoundingClientRect();
+      centerX = rect.left + rect.width / 2;
+      centerY = rect.top + rect.height / 2;
+      radius = rect.width / 2 - 10;
+
+      const deltaX = clientX - centerX;
+      const deltaY = clientY - centerY;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      // Limit handle to circle boundary
+      const limitedDistance = Math.min(distance, maxDistance);
+      const angle = Math.atan2(deltaY, deltaX);
+
+      const handleX = Math.cos(angle) * limitedDistance;
+      const handleY = Math.sin(angle) * limitedDistance;
+
+      handle.style.transform = `translate(${handleX}px, ${handleY}px)`;
+
+      // Determine movement direction
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+      
+      // Release all keys first
+      this.handleTouch(KEYS.UP, false);
+      this.handleTouch(KEYS.DOWN, false);
+      this.handleTouch(KEYS.LEFT, false);
+      this.handleTouch(KEYS.RIGHT, false);
+
+      if (limitedDistance > deadZone) {
+        // Upward movement (jump)
+        if (deltaY < -deadZone && absY > absX * 0.7) {
+          this.handleTouch(KEYS.UP, true);
+        }
+        // Downward movement (crouch)
+        else if (deltaY > deadZone && absY > absX * 0.7) {
+          this.handleTouch(KEYS.DOWN, true);
+        }
+        // Left movement (backward)
+        else if (deltaX < -deadZone && absX > absY * 0.7) {
+          this.handleTouch(KEYS.LEFT, true);
+        }
+        // Right movement (forward)
+        else if (deltaX > deadZone && absX > absY * 0.7) {
+          this.handleTouch(KEYS.RIGHT, true);
+        }
+        // Diagonal movements
+        else {
+          // Up-Left (backward jump)
+          if (deltaY < -deadZone && deltaX < -deadZone) {
+            this.handleTouch(KEYS.UP, true);
+            this.handleTouch(KEYS.LEFT, true);
+          }
+          // Up-Right (forward jump)
+          else if (deltaY < -deadZone && deltaX > deadZone) {
+            this.handleTouch(KEYS.UP, true);
+            this.handleTouch(KEYS.RIGHT, true);
+          }
+          // Down-Left
+          else if (deltaY > deadZone && deltaX < -deadZone) {
+            this.handleTouch(KEYS.DOWN, true);
+            this.handleTouch(KEYS.LEFT, true);
+          }
+          // Down-Right
+          else if (deltaY > deadZone && deltaX > deadZone) {
+            this.handleTouch(KEYS.DOWN, true);
+            this.handleTouch(KEYS.RIGHT, true);
+          }
+        }
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        e.preventDefault();
+        isDragging = true;
+        updateJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isDragging && e.touches.length > 0) {
+        e.preventDefault();
+        updateJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (isDragging) {
+        isDragging = false;
+        // Reset handle position
+        handle.style.transform = 'translate(0, 0)';
+        // Release all keys
+        this.handleTouch(KEYS.UP, false);
+        this.handleTouch(KEYS.DOWN, false);
+        this.handleTouch(KEYS.LEFT, false);
+        this.handleTouch(KEYS.RIGHT, false);
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchcancel', handleTouchEnd);
+
+    // Mouse events for desktop testing
+    container.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      isDragging = true;
+      updateJoystickPosition(e.clientX, e.clientY);
+    });
+
+    container.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        e.preventDefault();
+        updateJoystickPosition(e.clientX, e.clientY);
+      }
+    });
+
+    container.addEventListener('mouseup', handleTouchEnd);
+    container.addEventListener('mouseleave', handleTouchEnd);
   }
 
   public destroy(): void {

@@ -26,6 +26,38 @@ body {
   overscroll-behavior: none;
 }
 
+/* Portrait lock for landing and lobby pages on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .portrait-lock {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
+  .portrait-lock::before {
+    content: "Please rotate your device to portrait mode";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    color: white;
+    font-size: 18px;
+    text-align: center;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 20px 40px;
+    border-radius: 12px;
+    border: 2px solid #64ccc5;
+  }
+  
+  .portrait-lock > * {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+}
+
 /* Mobile Game Controller Styles */
 .mobile-controller {
   position: fixed;
@@ -33,42 +65,70 @@ body {
   left: 0;
   right: 0;
   width: 100%;
-  height: 280px;
+  height: 200px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: 20px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.2), transparent);
   z-index: 1000;
   pointer-events: none;
+  opacity: 0.3;
 }
 
 .mobile-controller > * {
   pointer-events: auto;
 }
 
-/* Left Side - D-pad */
+/* Left Side - Joystick */
 .controller-left {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.dpad-container {
+.joystick-container {
   position: relative;
-  width: 180px;
-  height: 180px;
-  display: grid;
-  grid-template-columns: 60px 60px 60px;
-  grid-template-rows: 60px 60px 60px;
-  gap: 0;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.joystick-base {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(99, 102, 241, 0.8);
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.joystick-handle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.5);
+  border: 2px solid rgba(99, 102, 241, 0.9);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.05s ease-out;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
 .dpad-btn {
-  background: rgba(99, 102, 241, 0.3);
-  border: 2px solid rgba(99, 102, 241, 0.6);
-  color: white;
-  font-size: 24px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 2px solid rgba(99, 102, 241, 0.8);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 16px;
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -77,12 +137,12 @@ body {
   -webkit-user-select: none;
   touch-action: none;
   transition: all 0.1s ease;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(5px);
 }
 
 .dpad-btn:active,
 .dpad-btn.pressed {
-  background: rgba(99, 102, 241, 0.7);
+  background: rgba(99, 102, 241, 0.25);
   border-color: rgba(99, 102, 241, 1);
   transform: scale(0.95);
 }
@@ -114,25 +174,25 @@ body {
 .dpad-center {
   grid-column: 2;
   grid-row: 2;
-  background: rgba(0, 0, 0, 0.3);
-  border: 2px solid rgba(99, 102, 241, 0.3);
+  background: rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(99, 102, 241, 0.5);
   pointer-events: none;
 }
 
 /* Right Side - Action Buttons */
 .controller-right {
   display: grid;
-  grid-template-columns: repeat(2, 80px);
-  grid-template-rows: repeat(2, 80px);
-  gap: 12px;
+  grid-template-columns: repeat(2, 50px);
+  grid-template-rows: repeat(2, 50px);
+  gap: 8px;
 }
 
 .action-btn {
-  background: rgba(168, 85, 247, 0.3);
-  border: 3px solid rgba(168, 85, 247, 0.6);
+  background: rgba(168, 85, 247, 0.1);
+  border: 2px solid rgba(168, 85, 247, 0.8);
   border-radius: 50%;
-  color: white;
-  font-size: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
   font-weight: bold;
   display: flex;
   align-items: center;
@@ -141,113 +201,70 @@ body {
   -webkit-user-select: none;
   touch-action: none;
   transition: all 0.1s ease;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .action-btn:active,
 .action-btn.pressed {
-  background: rgba(168, 85, 247, 0.8);
+  background: rgba(168, 85, 247, 0.25);
   border-color: rgba(168, 85, 247, 1);
   transform: scale(0.9);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* Specific button colors */
 .btn-a {
-  background: rgba(239, 68, 68, 0.3);
-  border-color: rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.8);
 }
 
 .btn-a:active,
 .btn-a.pressed {
-  background: rgba(239, 68, 68, 0.8);
+  background: rgba(239, 68, 68, 0.25);
   border-color: rgba(239, 68, 68, 1);
 }
 
 .btn-s {
-  background: rgba(34, 197, 94, 0.3);
-  border-color: rgba(34, 197, 94, 0.6);
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.8);
 }
 
 .btn-s:active,
 .btn-s.pressed {
-  background: rgba(34, 197, 94, 0.8);
+  background: rgba(34, 197, 94, 0.25);
   border-color: rgba(34, 197, 94, 1);
 }
 
 .btn-d {
-  background: rgba(59, 130, 246, 0.3);
-  border-color: rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.8);
 }
 
 .btn-d:active,
 .btn-d.pressed {
-  background: rgba(59, 130, 246, 0.8);
+  background: rgba(59, 130, 246, 0.25);
   border-color: rgba(59, 130, 246, 1);
 }
 
 .btn-f {
-  background: rgba(251, 191, 36, 0.3);
-  border-color: rgba(251, 191, 36, 0.6);
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.8);
 }
 
 .btn-f:active,
 .btn-f.pressed {
-  background: rgba(251, 191, 36, 0.8);
+  background: rgba(251, 191, 36, 0.25);
   border-color: rgba(251, 191, 36, 1);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .mobile-controller {
-    height: 240px;
-    padding: 15px;
-  }
-
-  .dpad-container {
-    width: 150px;
-    height: 150px;
-    grid-template-columns: 50px 50px 50px;
-    grid-template-rows: 50px 50px 50px;
-  }
-
-  .controller-right {
-    grid-template-columns: repeat(2, 70px);
-    grid-template-rows: repeat(2, 70px);
-    gap: 10px;
-  }
-
-  .action-btn {
-    font-size: 18px;
-  }
-}
-
-@media (max-width: 480px) {
-  .mobile-controller {
-    height: 200px;
-    padding: 10px;
-  }
-
-  .dpad-container {
-    width: 120px;
-    height: 120px;
-    grid-template-columns: 40px 40px 40px;
-    grid-template-rows: 40px 40px 40px;
-  }
-
-  .dpad-btn {
-    font-size: 18px;
-  }
-
-  .controller-right {
-    grid-template-columns: repeat(2, 60px);
-    grid-template-rows: repeat(2, 60px);
-    gap: 8px;
-  }
-
-  .action-btn {
-    font-size: 16px;
-    border-width: 2px;
-  }
+/* Drag gesture area for special moves */
+.dpad-drag-area {
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  z-index: 1;
+  touch-action: none;
 }

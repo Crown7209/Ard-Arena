@@ -70,7 +70,7 @@ export function LobbyShell({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-white">
+    <div className="relative min-h-screen overflow-hidden text-white portrait-lock">
       {neonBg}
       <div className="relative z-10 flex min-h-screen flex-col items-center gap-8 px-4 py-6 md:px-8 md:py-10">
         <header className="flex w-full max-w-5xl flex-wrap items-center justify-between gap-4">
@@ -120,12 +120,12 @@ export function LobbyShell({
         </header>
 
         <main className="grid w-full max-w-5xl flex-1 gap-5 lg:grid-cols-2">
-          <section className={`${panelClass} space-y-7 p-5 lg:p-8`}>
-            <div className="flex flex-col items-center gap-6">
+          <section className={`${panelClass} space-y-4 px-5 py-4 lg:px-8 lg:py-5`}>
+            <div className="flex flex-col items-center gap-4">
               <RoomCode code={code} />
               {isHost && joinUrl && (
-                <div className="rounded-3xl border border-white/20 bg-black/60 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
-                  <QRCodeSVG value={joinUrl} size={220} />
+                <div className="rounded-3xl border border-white/20 bg-black/60 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.45)]">
+                  <QRCodeSVG value={joinUrl} size={200} />
                 </div>
               )}
               {isHost && (

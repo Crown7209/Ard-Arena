@@ -9,6 +9,7 @@ import { playerService } from "@/services/playerService";
 import { usePlayerStore } from "@/store/playerStore";
 import { MoveType } from "@/components/game/mortalkombat/core/moveTypes";
 import { CONFIG } from "@/components/game/mortalkombat/core/config";
+import RotationReminder from "@/components/game/RotationReminder";
 
 type GameState = "playing" | "round-winner" | "final-winner";
 
@@ -28,6 +29,8 @@ export default function GamePage() {
   const [player2Wins, setPlayer2Wins] = useState(0);
   const [roundWinner, setRoundWinner] = useState<number | null>(null);
   const [finalWinner, setFinalWinner] = useState<number | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const { currentPlayerId } = usePlayerStore();
 
@@ -106,6 +109,31 @@ export default function GamePage() {
     }
   }, []);
 
+  // Detect device orientation and screen size
+  useEffect(() => {
+    const checkOrientation = () => {
+      const isMobileDevice = window.innerWidth < 768;
+      setIsMobile(isMobileDevice);
+      
+      if (isMobileDevice) {
+        const isLandscapeMode = window.innerWidth > window.innerHeight;
+        setIsLandscape(isLandscapeMode);
+      } else {
+        // Desktop always shows game
+        setIsLandscape(true);
+      }
+    };
+
+    checkOrientation();
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener("orientationchange", checkOrientation);
+    };
+  }, []);
+
   useEffect(() => {
     const initGame = async () => {
       try {
@@ -151,6 +179,9 @@ export default function GamePage() {
         const playerIndex = isHost ? 0 : 1;
 
         setLoading(false);
+
+        // Only initialize game if in landscape (or desktop)
+        if (!isLandscape && isMobile) return;
 
         // Initialize game
         if (!containerRef.current || initialized.current) return;
@@ -226,7 +257,9 @@ export default function GamePage() {
       }
     };
 
-    initGame();
+    if (isLandscape || !isMobile) {
+      initGame();
+    }
 
     return () => {
       if (initialized.current) {
@@ -234,7 +267,7 @@ export default function GamePage() {
         initialized.current = false;
       }
     };
-  }, [router, searchParams, currentPlayerId, handleRoundEnd]);
+  }, [router, searchParams, currentPlayerId, handleRoundEnd, isLandscape, isMobile]);
 
   const startNextRound = () => {
     const game = getGame();
@@ -345,6 +378,11 @@ export default function GamePage() {
         </div>
       </div>
     );
+  }
+
+  // Show rotation reminder on mobile portrait
+  if (isMobile && !isLandscape && !loading && !error) {
+    return <RotationReminder />;
   }
 
   return (
