@@ -31,7 +31,7 @@ export default function GamePage() {
   const [player2Wins, setPlayer2Wins] = useState(0);
   const [roundWinner, setRoundWinner] = useState<number | null>(null);
   const [finalWinner, setFinalWinner] = useState<number | null>(null);
-  const [isLandscape, setIsLandscape] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(true); // Default true for desktop
   const [isMobile, setIsMobile] = useState(false);
 
   const { currentPlayerId } = usePlayerStore();
@@ -220,10 +220,19 @@ export default function GamePage() {
           return;
         }
 
-        // Determine player index (host is always player 0, first joiner is player 1)
+        // Determine player index (host/admin is player 0/left, joiner is player 1/right)
         const storedHostId = localStorage.getItem("hostId");
         const isHost = room.host_id === storedHostId;
-        const playerIndex = isHost ? 0 : 1;
+        const playerIndex = isHost ? 0 : 1; // host=0 (left/Player 1), joiner=1 (right/Player 2)
+
+        console.log("🎮 Game initialization:", {
+          isHost,
+          playerIndex,
+          playerId,
+          roomId: room.id,
+          isLandscape,
+          isMobile,
+        });
 
         // Store user IDs for both players
         // Current user's ID based on their player index
@@ -243,11 +252,22 @@ export default function GamePage() {
         setLoading(false);
 
         // Only initialize game if in landscape (or desktop)
-        if (!isLandscape && isMobile) return;
+        if (!isLandscape && isMobile) {
+          console.log("⏸️ Waiting for landscape mode on mobile");
+          return;
+        }
 
         // Initialize game
-        if (!containerRef.current || initialized.current) return;
+        if (!containerRef.current || initialized.current) {
+          console.log("⚠️ Cannot initialize:", {
+            hasContainer: !!containerRef.current,
+            alreadyInitialized: initialized.current,
+          });
+          return;
+        }
         initialized.current = true;
+
+        console.log("✅ Starting game initialization...");
 
         const options = {
           arena: {
@@ -338,13 +358,14 @@ export default function GamePage() {
         initialized.current = false;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     router,
     searchParams,
     currentPlayerId,
     handleRoundEnd,
-    isLandscape,
-    isMobile,
+    authUser,
+    // Note: isLandscape and isMobile are intentionally excluded to prevent re-initialization
   ]);
 
   const startNextRound = () => {

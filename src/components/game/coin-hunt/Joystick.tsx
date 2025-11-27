@@ -43,17 +43,20 @@ const Joystick = ({ onMove }: { onMove: (x: number, y: number) => void }) => {
   return (
     <div
       ref={containerRef}
-      className="relative w-20 h-20 bg-slate-800/50 rounded-full border-2 border-slate-600 touch-none"
+      className="relative w-20 h-20 md:w-24 md:h-24 bg-white/10 backdrop-blur-sm rounded-full border-2 touch-none"
+      style={{ borderColor: "rgba(10, 94, 176, 0.4)" }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <div
-        className="absolute w-8 h-8 bg-cyan-500 rounded-full shadow-lg shadow-cyan-500/50 transition-transform duration-75"
+        className="absolute w-10 h-10 md:w-12 md:h-12 rounded-full transition-transform duration-75 shadow-lg"
         style={{
           left: "50%",
           top: "50%",
           transform: `translate(calc(-50% + ${position.x}px), calc(-50% + ${position.y}px))`,
+          backgroundColor: "#0A5EB0",
+          boxShadow: "0 0 20px rgba(10, 94, 176, 0.5)"
         }}
       />
     </div>

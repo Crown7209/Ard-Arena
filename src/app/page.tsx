@@ -211,26 +211,8 @@ const Home = () => {
 
   // Room / Party Logic
   const [roomCode, setRoomCode] = useState<string | null>(null);
-  const [roomId, setRoomId] = useState<string | undefined>(undefined);
 
-  // Fetch room ID from code
-  useEffect(() => {
-    const fetchRoomId = async () => {
-      if (roomCode) {
-        const r = await roomService.getRoomByCode(roomCode);
-        if (r) {
-          setRoomId(r.id);
-        } else {
-          // Invalid code or room gone
-          setRoomCode(null);
-          localStorage.removeItem("currentRoomCode");
-        }
-      }
-    };
-    fetchRoomId();
-  }, [roomCode]);
-
-  const { room } = useRoom(roomId);
+  const { room } = useRoom(roomCode || undefined, true); // Use roomCode directly
 
   const isRoomHost =
     typeof window !== "undefined" &&
@@ -244,10 +226,17 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
+    console.log("🔍 Room status check:", {
+      status: room?.status,
+      roomCode,
+      room,
+    });
+
     if (room?.status === "playing" && roomCode) {
+      console.log("✅ Redirecting to game with code:", roomCode);
       router.push(`/game?code=${roomCode}`);
     }
-  }, [room?.status, roomCode, router]);
+  }, [room?.status, roomCode, router, room]);
 
   const handleHostGame = async () => {
     setLoading(true);
@@ -280,10 +269,35 @@ const Home = () => {
     if (!room?.id) return;
 
     // Get current player ID
-    const playerId = localStorage.getItem("playerId");
+    let playerId = localStorage.getItem("playerId");
+
+    // If admin hasn't joined as a player yet, join them now
     if (!playerId) {
-      alert("You must join the room first");
-      return;
+      const hostId = localStorage.getItem("hostId");
+      if (hostId && room.host_id === hostId) {
+        // Admin is the host, join them as a player
+        try {
+          const { playerService } = await import("@/services/playerService");
+          const player = await playerService.joinRoom(room.id, "Host");
+          if (player) {
+            playerId = player.id;
+            localStorage.setItem("playerId", player.id);
+            setCurrentPlayerId(player.id);
+            // Mark admin as ready
+            await playerService.toggleReady(player.id, true);
+          } else {
+            alert("Failed to join as player");
+            return;
+          }
+        } catch (error) {
+          console.error("Error joining as player:", error);
+          alert("Failed to join as player");
+          return;
+        }
+      } else {
+        alert("You must join the room first");
+        return;
+      }
     }
 
     // Check if user is admin

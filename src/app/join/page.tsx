@@ -23,6 +23,14 @@ function JoinContent() {
     }
   }, [initialCode]);
 
+  // Clear previous room session when entering join page
+  useEffect(() => {
+    // Clear old room data to allow joining a new room
+    localStorage.removeItem("currentRoomCode");
+    localStorage.removeItem("playerId");
+    setCurrentPlayerId(null);
+  }, [setCurrentPlayerId]);
+
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code || !name) return;
