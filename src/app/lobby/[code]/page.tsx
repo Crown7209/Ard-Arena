@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useRoom } from "@/app/hooks/useRoom";
-import { usePlayers } from "@/app/hooks/usePlayers";
+import { useRoom } from "@/hooks/useRoom";
+import { usePlayers } from "@/hooks/usePlayers";
 import { roomService } from "@/services/roomService";
 import { playerService } from "@/services/playerService";
 import { usePlayerStore } from "@/store/playerStore";
@@ -58,7 +58,6 @@ export default function LobbyPage() {
       localStorage.setItem("currentRoomCode", code);
       router.push(`/game?code=${code}`);
     }
-
   }, [room?.status, router]);
 
   const handleStartGame = async () => {

@@ -13,7 +13,9 @@ import {
   PersonStanding,
 } from "lucide-react";
 import { roomService } from "@/services/roomService";
+import { playerService } from "@/services/playerService";
 import { useAuth } from "@/hooks/useAuth";
+import { usePlayerStore } from "@/store/playerStore";
 
 const buttonBase =
   "inline-flex items-center justify-center gap-3 h-16 px-8 rounded-2xl text-lg font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0";
@@ -23,12 +25,12 @@ const accentButton = `${buttonBase} bg-[#64ccc5] text-slate-950 shadow-[0_0_35px
 const Home = () => {
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
+  const { setCurrentPlayerId } = usePlayerStore();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-
 
   useEffect(() => {
     setMounted(true);

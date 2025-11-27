@@ -190,8 +190,10 @@ export abstract class BaseController {
 
 export class GamePromise {
   private callbacks: Array<() => void> = [];
+  private isInitialized = false;
 
   initialized(): void {
+    this.isInitialized = true;
     this.callbacks.forEach((c) => {
       if (typeof c === "function") {
         c();
@@ -200,6 +202,10 @@ export class GamePromise {
   }
 
   ready(callback: () => void): void {
-    this.callbacks.push(callback);
+    if (this.isInitialized) {
+      callback();
+    } else {
+      this.callbacks.push(callback);
+    }
   }
 }

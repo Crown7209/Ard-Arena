@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { User as DbUser } from "@/lib/types";
-import { useAuth } from "@/app/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { Trophy, Medal, User as UserIcon, Star } from "lucide-react";
 
 export default function LeaderboardPage() {
