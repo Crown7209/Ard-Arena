@@ -47,6 +47,13 @@ const GameBrowser = () => {
       return;
     }
 
+    // For Coin Hunt game, navigate directly to the game page
+    if (game.id === "coin-hunt") {
+      setLoadingGameId(null);
+      router.push("/nft-hunt");
+      return;
+    }
+
     // For other games, use the normal flow
     // Clear previous session data
     localStorage.removeItem("playerId");
@@ -149,6 +156,15 @@ const GameBrowser = () => {
     {
       name: "Adults",
       games: [
+        {
+          id: "coin-hunt",
+          title: "Coin Hunt",
+          description: "Collect coins, avoid obstacles, and escape the AI bot in this fast-paced survival game!",
+          rating: 5,
+          players: "1 player",
+          image: "/images/gamepreview/coin-hunters.png",
+          gameType: "other",
+        },
         {
           id: "game-7",
           title: "Strategy Master",
