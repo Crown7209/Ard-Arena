@@ -16,6 +16,7 @@ import { roomService } from "@/services/roomService";
 import { playerService } from "@/services/playerService";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlayerStore } from "@/store/playerStore";
+import { Account } from "@/components/layout/Account";
 
 const buttonBase =
   "inline-flex items-center justify-center gap-3 h-16 px-8 rounded-2xl text-lg font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0";
@@ -199,6 +200,8 @@ const Home = () => {
               )}
             </div>
           </div>
+
+          <Account />
         </header>
 
         <main className="flex flex-1 flex-col items-center justify-center text-center">

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { start, reset } from "@/components/game/game";
+import { start, reset } from "@/components/game/mortalkombat/game";
 import { Loader2 } from "lucide-react";
 import { roomService } from "@/services/roomService";
 import { playerService } from "@/services/playerService";
