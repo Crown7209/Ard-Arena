@@ -30,22 +30,21 @@ export function RoomCode({ code }: RoomCodeProps) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      <span className="text-sm text-gray-400 uppercase tracking-widest font-bold">
+    <div className="flex flex-col items-center gap-2 md:gap-4">
+      <span className="text-[10px] md:text-sm text-white/60 uppercase tracking-[0.2em] md:tracking-widest font-bold">
         Room Code
       </span>
-      <div className="flex items-center gap-4 bg-gray-800/50 px-8 py-4 rounded-2xl border border-gray-700">
-        <div className="text-7xl font-mono font-black text-[#64ccc5] tracking-[0.2em]">
+      <div className="flex items-center gap-2 md:gap-4 bg-black/60 px-3 md:px-8 py-2 md:py-4 rounded-lg md:rounded-2xl border border-white/20">
+        <div className="text-2xl md:text-7xl font-mono font-black text-[#64ccc5] tracking-[0.15em] md:tracking-[0.2em]">
           {code}
         </div>
-        <Button
-          variant="ghost"
+        <button
           onClick={copyCode}
-          className="p-3 rounded-xl hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+          className="p-1.5 md:p-3 rounded-lg md:rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
           title="Copy Code"
         >
-          <Copy className="w-6 h-6" />
-        </Button>
+          <Copy className="w-3 h-3 md:w-6 md:h-6" />
+        </button>
       </div>
     </div>
   );

@@ -180,7 +180,19 @@ export class Arena {
   }
 
   startCountdown(): void {
-    // Lock all fighters during countdown
+    // Skip countdown for rounds 2 and 3
+    if (this.currentRound > 1) {
+      // Immediately finish countdown and start the game
+      this.countdownState = "finished";
+      this.fighters.forEach((fighter) => {
+        fighter.unlock();
+      });
+      this.startTimer();
+      this.refresh();
+      return;
+    }
+
+    // Lock all fighters during countdown (only for round 1)
     this.fighters.forEach((fighter) => {
       fighter.lock();
     });

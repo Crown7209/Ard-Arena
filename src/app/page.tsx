@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePlayerStore } from "@/store/playerStore";
 import { Account } from "@/components/layout/Account";
 import GameBrowser from "@/components/game/GameBrowser";
+import { supabase } from "@/lib/supabase";
 
 const buttonBase =
   "inline-flex items-center justify-center gap-3 h-16 px-8 rounded-2xl text-lg font-semibold tracking-wide transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0";
@@ -36,6 +37,7 @@ const Home = () => {
 
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const [coins, setCoins] = useState<number>(100);
 
   useEffect(() => {
     setMounted(true);
@@ -68,6 +70,75 @@ const Home = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchCoins = async () => {
+      if (user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from("users")
+            .select("coins")
+            .eq("id", user.id)
+            .single();
+          
+          if (error) {
+            console.error("Error fetching coins:", error);
+            // If user doesn't exist yet, set default coins
+            if (error.code === "PGRST116") {
+              setCoins(100);
+            } else {
+              setCoins(0);
+            }
+          } else if (data) {
+            // Handle NULL, undefined, or actual 0 value
+            const coinsValue = data.coins;
+            if (coinsValue === null || coinsValue === undefined) {
+              // If coins is NULL, set to 100 and update database
+              setCoins(100);
+              await supabase
+                .from("users")
+                .update({ coins: 100 })
+                .eq("id", user.id);
+            } else {
+              setCoins(coinsValue);
+            }
+          }
+        } catch (err) {
+          console.error("Unexpected error fetching coins:", err);
+          setCoins(0);
+        }
+      } else {
+        // Not logged in - show default or 0
+        setCoins(0);
+      }
+    };
+
+    fetchCoins();
+
+    if (user?.id) {
+      const channel = supabase
+        .channel(`user-coins-${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "users",
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (payload.new && payload.new.coins !== undefined) {
+              setCoins(payload.new.coins as number);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   const handleHostGame = async () => {
     setLoading(true);
@@ -135,14 +206,14 @@ const Home = () => {
       <div className="fixed inset-0 -z-10 bg-black md:bg-black/75" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-3 px-4 py-4 md:gap-4 md:px-12 md:py-10">
+        <header className="flex flex-wrap items-center justify-between gap-3 pl-4 pr-0 py-4 md:gap-4 md:pl-12 md:pr-0 md:py-10">
           {/* Mobile: Icon-only button */}
           <button
             type="button"
-            className="md:hidden inline-flex items-center justify-center h-12 w-12 rounded-2xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-200"
+            className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-200"
             aria-label="Game Category"
           >
-            <Swords className="h-5 w-5 text-[#64ccc5]" />
+            <Swords className="h-4 w-4 text-[#64ccc5]" />
           </button>
 
           {/* Desktop: Full button with text and title */}
@@ -166,41 +237,41 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
-            <div className="flex h-12 md:h-16 items-center gap-2 md:gap-4 rounded-xl md:rounded-2xl border border-white/30 bg-black/60 px-3 md:px-6 backdrop-blur">
-              <Coins className="h-5 w-5 md:h-6 md:w-6 text-[#64ccc5]" />
+          <div className="flex items-center gap-2 md:gap-4 ml-auto">
+            <div className="flex h-10 md:h-16 items-center gap-2 md:gap-4 rounded-xl md:rounded-2xl border border-white/30 bg-black/60 px-2.5 md:px-6 backdrop-blur">
+              <Coins className="h-4 w-4 md:h-6 md:w-6 text-[#64ccc5]" />
               <div className="flex flex-col leading-none">
-                <p className="text-[10px] md:text-xs uppercase tracking-[0.4em] text-white/60">
+                <p className="text-[9px] md:text-xs uppercase tracking-[0.4em] text-white/60">
                   Coins
                 </p>
-                <p className="text-lg md:text-2xl font-bold text-white">100</p>
+                <p className="text-base md:text-2xl font-bold text-white">{coins}</p>
               </div>
             </div>
             <button
               type="button"
-              className={`${outlineButton} hidden md:inline-flex`}
+              className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-200"
               onClick={() => router.push("/leaderboard")}
+              aria-label="Leaderboard"
             >
-              <Trophy className="h-5 w-5 text-[#64ccc5]" />
-              Leaderboard
+              <Trophy className="h-4 w-4 text-[#64ccc5]" />
             </button>
             <div className="relative" ref={profileMenuRef}>
               <button
                 type="button"
                 aria-label={user ? "Open profile menu" : "Go to login"}
-                className="inline-flex items-center justify-center h-12 w-12 md:h-16 md:w-16 rounded-xl md:rounded-2xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-200"
+                className="inline-flex items-center justify-center h-10 w-10 md:h-16 md:w-16 rounded-xl md:rounded-2xl border border-white/30 bg-white/5 text-white/90 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-200"
                 onClick={handleProfileAction}
                 disabled={authLoading}
               >
                 {user ? (
                   <PersonStanding
-                    className="h-5 w-5 md:h-7 md:w-7 text-[#64ccc5]"
+                    className="h-4 w-4 md:h-7 md:w-7 text-[#64ccc5]"
                     color="#64ccc5"
                     strokeWidth={2}
                   />
                 ) : (
                   <LogIn
-                    className="h-5 w-5 md:h-7 md:w-7 text-[#64ccc5]"
+                    className="h-4 w-4 md:h-7 md:w-7 text-[#64ccc5]"
                     color="#64ccc5"
                     strokeWidth={2}
                   />
@@ -231,13 +302,13 @@ const Home = () => {
         </header>
 
         <main className="flex flex-1 flex-col items-center justify-center text-center px-4 py-8 md:py-12">
-          {/* Mobile: Show title in hero */}
+          {/* Mobile: Show only ARD ARENA */}
           <div className="mb-6 md:hidden">
-            <p className="text-xs uppercase tracking-[0.6em] text-white/60 mb-2">
+            <p className="text-2xl md:text-xs uppercase tracking-[0.6em] text-white/60">
               ARD ARENA
             </p>
-            <p className="text-2xl font-black text-[#e0fdfb] drop-shadow-[0_0_15px_rgba(100,204,197,0.5)]">
-              Digital Battle Lobby
+            <p className="text-sm mt-2 uppercase tracking-[0.1em] text-[#64ccc5]">
+              Mini Games - Major Fun
             </p>
           </div>
           
@@ -247,38 +318,13 @@ const Home = () => {
               Get Ready
             </p>
           </div>
-          
-          {/* Mobile: Get Ready text */}
-          <p className="md:hidden text-xs uppercase tracking-[0.5em] text-white/60 mb-6">
-            Get Ready
-          </p>
-          
-          <button
-            type="button"
-            className={`${accentButton} h-16 md:h-20 w-full max-w-[18rem] px-8 md:px-14 text-lg md:text-2xl md:mt-8`}
-            disabled={loading}
-            onClick={handleHostGame}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span className="hidden md:inline">Building Room...</span>
-                <span className="md:hidden">Loading...</span>
-              </>
-            ) : (
-              <>
-                <Gamepad2 className="h-5 w-5 md:h-6 md:w-6" />
-                Play
-              </>
-            )}
-          </button>
         </main>
 
         <GameBrowser />
 
         <footer className="flex flex-wrap items-center justify-center gap-4 px-4 py-8 md:px-12">
           <p className="text-sm text-white/60">
-            © 2024 ARD Arena. All rights reserved.
+            © 2025 ARD Arena. All rights reserved.
           </p>
         </footer>
       </div>
