@@ -1,7 +1,24 @@
-declare const randomColor: (options?: {
-  luminosity?: string;
-  hue?: string;
-}) => string;
+// Predefined color palette - using distinct pastel colors that are easy to differentiate
+const COLOR_PALETTE = [
+  "#FFB3BA", // Pastel Pink
+  "#BAFFC9", // Pastel Green
+  "#BAE1FF", // Pastel Blue
+  "#FFFFBA", // Pastel Yellow
+  "#FFDFBA", // Pastel Orange
+  "#E0BBE4", // Pastel Purple
+  "#B4A7D6", // Pastel Lavender
+  "#FFCCCB", // Pastel Coral
+  "#C7CEEA", // Pastel Periwinkle
+  "#B5EAD7", // Pastel Mint
+  "#F0E68C", // Pastel Khaki
+  "#FFD1DC", // Pastel Rose
+  "#DDA0DD", // Pastel Plum
+  "#98D8C8", // Pastel Turquoise
+  "#F4A460", // Pastel Sandy Brown
+  "#DEB887", // Pastel Burlywood
+  "#FFB6C1", // Pastel Light Pink
+  "#87CEEB", // Pastel Sky Blue
+];
 
 function shuffle(array: string[]): void {
   for (let i = array.length - 1; i > 0; i--) {
@@ -11,59 +28,18 @@ function shuffle(array: string[]): void {
 }
 
 export const getRandomColorPairs = (count: number): string[] => {
-  const hueList = [
-    "red",
-    "orange",
-    "yellow",
-    "green",
-    "blue",
-    "purple",
-    "pink",
-    "monochrome",
-  ];
-
-  const luminosityList = ["bright", "light", "dark"];
-  const colorList: string[] = [];
-  const usedColors = new Set<string>();
-
-  let attempts = 0;
-  const maxAttempts = count * 10; // Prevent infinite loop
-
-  while (colorList.length < count && attempts < maxAttempts) {
-    attempts++;
-
-    const hueIndex = colorList.length % hueList.length;
-    const luminosityIndex =
-      Math.floor(colorList.length / hueList.length) % luminosityList.length;
-
-    const color = randomColor({
-      luminosity: luminosityList[luminosityIndex],
-      hue: hueList[hueIndex],
-    });
-
-    // Only add if we haven't used this exact color
-    if (!usedColors.has(color)) {
-      colorList.push(color);
-      usedColors.add(color);
-    }
-  }
-
-  // If we still don't have enough colors, generate random ones
-  while (colorList.length < count) {
-    const color = randomColor({
-      luminosity: "random",
-    });
-    if (!usedColors.has(color)) {
-      colorList.push(color);
-      usedColors.add(color);
-    }
-  }
-
-  // double current color list
-  const fullColorList = [...colorList, ...colorList];
-
-  // Shuffle color list
+  // Randomly select colors from the palette
+  const shuffledPalette = [...COLOR_PALETTE];
+  shuffle(shuffledPalette);
+  
+  // Select the first N colors needed
+  const selectedColors = shuffledPalette.slice(0, count);
+  
+  // Double the colors to create pairs
+  const fullColorList = [...selectedColors, ...selectedColors];
+  
+  // Shuffle the color list randomly
   shuffle(fullColorList);
-
+  
   return fullColorList;
 };

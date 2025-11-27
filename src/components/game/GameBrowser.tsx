@@ -33,6 +33,21 @@ const GameBrowser = () => {
 
     setLoadingGameId(game.id);
 
+    // For Fight Game, show mode selection
+    if (game.gameType === "fighting") {
+      setLoadingGameId(null);
+      router.push("/game-mode");
+      return;
+    }
+
+    // For Color Match game, navigate directly to the game page
+    if (game.id === "game-2") {
+      setLoadingGameId(null);
+      router.push("/colormatch");
+      return;
+    }
+
+    // For other games, use the normal flow
     // Clear previous session data
     localStorage.removeItem("playerId");
     localStorage.removeItem("currentRoomCode");
@@ -76,7 +91,7 @@ const GameBrowser = () => {
           description: "Embark on an exciting journey through magical worlds and solve puzzles together!",
           rating: 5,
           players: "1-4 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/adventure-quest.png",
           gameType: "other",
         },
         {
@@ -85,7 +100,7 @@ const GameBrowser = () => {
           description: "Match colors and patterns in this fun and educational game for kids!",
           rating: 4.5,
           players: "1-2 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/color-match.png",
           gameType: "other",
         },
         {
@@ -94,7 +109,7 @@ const GameBrowser = () => {
           description: "Help cute animals solve problems and learn about friendship!",
           rating: 5,
           players: "1-3 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/animal-friends.png",
           gameType: "other",
         },
       ],
@@ -107,7 +122,7 @@ const GameBrowser = () => {
           title: "Fight Game",
           description: "Intense multiplayer fighting game! Battle your friends in epic combat with various moves and strategies.",
           rating: 5,
-          players: "2-4 players",
+          players: "1-2 players",
           image: "/images/fighting-grid.svg",
           gameType: "fighting",
         },
@@ -117,7 +132,7 @@ const GameBrowser = () => {
           description: "Fast-paced racing action! Compete against friends in thrilling races with power-ups and obstacles.",
           rating: 4.5,
           players: "1-4 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/racing-challenge.png",
           gameType: "other",
         },
         {
@@ -126,7 +141,7 @@ const GameBrowser = () => {
           description: "Strategic combat game where you build your team and fight in intense battles!",
           rating: 4.5,
           players: "2-6 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/battle-arena.png",
           gameType: "other",
         },
       ],
@@ -140,7 +155,7 @@ const GameBrowser = () => {
           description: "Test your strategic thinking in this challenging board game adaptation!",
           rating: 5,
           players: "2-4 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/strategy-game.png",
           gameType: "other",
         },
         {
@@ -149,7 +164,7 @@ const GameBrowser = () => {
           description: "Classic card game experience with modern twists and competitive gameplay!",
           rating: 4.5,
           players: "2-6 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/card-champions.png",
           gameType: "other",
         },
         {
@@ -158,7 +173,7 @@ const GameBrowser = () => {
           description: "Complex puzzles and brain teasers designed for experienced players!",
           rating: 5,
           players: "1-4 players",
-          image: "/images/fighting-grid.svg",
+          image: "/images/gamepreview/puzzle-game.png",
           gameType: "other",
         },
       ],
@@ -166,19 +181,19 @@ const GameBrowser = () => {
   ];
 
   return (
-    <div className="relative w-full py-12 px-4 md:px-12">
+    <div className="relative w-full py-6 md:py-12 px-4 md:px-12">
       <div className="mx-auto max-w-7xl">
         {categories.map((category, categoryIndex) => (
-          <div key={category.name} className="mb-16 last:mb-0">
-            <h2 className="mb-6 text-3xl font-black text-[#e0fdfb] drop-shadow-[0_0_15px_rgba(100,204,197,0.5)]">
+          <div key={category.name} className="mb-8 md:mb-16 last:mb-0">
+            <h2 className="mb-3 md:mb-6 text-base md:text-3xl font-black text-[#e0fdfb] drop-shadow-[0_0_15px_rgba(100,204,197,0.5)]">
               {category.name}
             </h2>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-2 lg:grid-cols-3 md:gap-6">
               {category.games.map((game) => (
                 <div key={game.id} className="relative">
                   {loadingGameId === game.id && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/80 backdrop-blur-sm">
-                      <Loader2 className="h-8 w-8 animate-spin text-[#64ccc5]" />
+                    <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl md:rounded-2xl bg-black/80 backdrop-blur-sm">
+                      <Loader2 className="h-4 w-4 md:h-8 md:w-8 animate-spin text-[#64ccc5]" />
                     </div>
                   )}
                   <GameCard

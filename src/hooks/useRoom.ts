@@ -45,7 +45,8 @@ export function useRoom(roomId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId, setRoom, updateRoom]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]); // Only depend on roomId to prevent re-subscriptions
 
   return { room, loading };
 }

@@ -8,61 +8,54 @@ interface PlayerListProps {
 
 export function PlayerList({ players, currentPlayerId }: PlayerListProps) {
   return (
-    <div className="space-y-4 w-full">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-gray-300 uppercase tracking-wider">
-          Players
-        </h3>
-        <span className="px-3 py-1 bg-gray-800 rounded-full text-sm font-medium text-gray-400 border border-gray-700">
-          {players.length} / 2
-        </span>
-      </div>
-
-      <div className="grid gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+    <div className="space-y-2 md:space-y-3 w-full">
+      <div className="grid gap-2 md:gap-3 max-h-[300px] md:max-h-[400px] overflow-y-auto">
         {players.map((player) => (
           <div
             key={player.id}
-            className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-200 ${
+            className={`flex items-center justify-between p-3 md:p-4 rounded-xl border transition-all duration-200 ${
               player.id === currentPlayerId
-                ? "border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.1)]"
-                : "border-gray-700 bg-gray-800/50"
+                ? "border-[#64ccc5]/50 bg-[#64ccc5]/10"
+                : "border-white/20 bg-white/5"
             }`}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <div
                 className={`p-2 rounded-lg ${
                   player.id === currentPlayerId
-                    ? "bg-indigo-500/20"
-                    : "bg-gray-700"
+                    ? "bg-[#64ccc5]/20"
+                    : "bg-white/10"
                 }`}
               >
                 <User
-                  className={`w-5 h-5 ${
+                  className={`w-4 h-4 md:w-5 md:h-5 ${
                     player.id === currentPlayerId
-                      ? "text-indigo-400"
-                      : "text-gray-400"
+                      ? "text-[#64ccc5]"
+                      : "text-white/60"
                   }`}
                 />
               </div>
               <span
-                className={`font-bold ${
-                  player.id === currentPlayerId ? "text-white" : "text-gray-300"
+                className={`text-sm md:text-base font-bold ${
+                  player.id === currentPlayerId ? "text-white" : "text-white/90"
                 }`}
               >
-                {player.name} {player.id === currentPlayerId && "(You)"}
+                {player.name} {player.id === currentPlayerId && (
+                  <span className="text-xs text-[#64ccc5]">(You)</span>
+                )}
               </span>
             </div>
 
             <div className="flex items-center">
               {player.is_ready ? (
-                <div className="flex items-center gap-2 text-green-400 bg-green-400/10 px-3 py-1.5 rounded-lg text-sm font-bold border border-green-400/20">
-                  <CheckCircle2 className="w-4 h-4" />
-                  READY
+                <div className="flex items-center gap-1.5 md:gap-2 text-[#64ccc5] bg-[#64ccc5]/10 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold border border-[#64ccc5]/30">
+                  <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden md:inline">READY</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-gray-500 bg-gray-700/50 px-3 py-1.5 rounded-lg text-sm font-bold border border-gray-700">
-                  <Circle className="w-4 h-4" />
-                  WAITING
+                <div className="flex items-center gap-1.5 md:gap-2 text-white/60 bg-white/5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg text-xs md:text-sm font-bold border border-white/10">
+                  <Circle className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden md:inline">WAITING</span>
                 </div>
               )}
             </div>
@@ -70,9 +63,9 @@ export function PlayerList({ players, currentPlayerId }: PlayerListProps) {
         ))}
 
         {players.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500 bg-gray-800/30 rounded-xl border-2 border-dashed border-gray-800">
-            <User className="w-12 h-12 mb-3 opacity-20" />
-            <p className="font-medium">Waiting for players...</p>
+          <div className="flex flex-col items-center justify-center py-8 md:py-12 text-white/60 bg-white/5 rounded-xl border-2 border-dashed border-white/10">
+            <User className="w-8 h-8 md:w-12 md:h-12 mb-2 md:mb-3 opacity-40" />
+            <p className="text-sm md:text-base font-medium">Waiting for players...</p>
           </div>
         )}
       </div>

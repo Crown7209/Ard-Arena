@@ -21,6 +21,8 @@ export interface User {
   email: string;
   username: string | null;
   wins: number;
+  color_match_points: number;
+  coins: number;
   created_at: string;
 }
 

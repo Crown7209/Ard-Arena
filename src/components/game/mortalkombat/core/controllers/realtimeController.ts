@@ -30,6 +30,8 @@ export class RealtimeController extends BaseController {
   private mobileController: MobileController | null = null;
   private lastPositionUpdate = 0;
   private lastLifeUpdate = 0;
+  private positionInterval?: number;
+  private lifeInterval?: number;
 
   constructor(options: RealtimeGameOptions) {
     super(options);
@@ -127,25 +129,26 @@ export class RealtimeController extends BaseController {
   private startSyncIntervals(): void {
     const player = this.fighters[this.playerIndex];
 
-    // Sync position every 50ms for instant responsiveness (no delay)
-    setInterval(() => {
+    // Sync position every 100ms (10/sec) - throttled to reduce requests
+    this.positionInterval = window.setInterval(() => {
       if (!player.isJumping()) {
         const now = Date.now();
-        if (now - this.lastPositionUpdate > 40) {
+        // Throttle to max 10 updates per second (100ms)
+        if (now - this.lastPositionUpdate >= 100) {
           this.realtimeService.sendPosition(player.getX(), player.getY());
           this.lastPositionUpdate = now;
         }
       }
-    }, 50);
+    }, 100);
 
-    // Sync life every 1 second (faster updates)
-    setInterval(() => {
+    // Sync life every 2 seconds - less frequent since life doesn't change often
+    this.lifeInterval = window.setInterval(() => {
       const now = Date.now();
-      if (now - this.lastLifeUpdate > 900) {
+      if (now - this.lastLifeUpdate >= 2000) {
         this.realtimeService.sendLife(player.getLife());
         this.lastLifeUpdate = now;
       }
-    }, 1000);
+    }, 2000);
   }
 
   private getMove(
@@ -233,14 +236,29 @@ export class RealtimeController extends BaseController {
       fighter.setMove(move);
       // Broadcast move immediately with no delay
       this.realtimeService.sendMove(move);
-      // Also sync position immediately when move changes for instant response
-      this.realtimeService.sendPosition(fighter.getX(), fighter.getY());
+      // Sync position when move changes (throttled by lastPositionUpdate)
+      const now = Date.now();
+      if (now - this.lastPositionUpdate >= 50) {
+        this.realtimeService.sendPosition(fighter.getX(), fighter.getY());
+        this.lastPositionUpdate = now;
+      }
     }
   }
 
   public reset(): void {
     super.reset();
     this.realtimeService.unsubscribe();
+    
+    // Clear intervals to prevent memory leaks and excessive requests
+    if (this.positionInterval !== undefined) {
+      clearInterval(this.positionInterval);
+      this.positionInterval = undefined;
+    }
+    if (this.lifeInterval !== undefined) {
+      clearInterval(this.lifeInterval);
+      this.lifeInterval = undefined;
+    }
+    
     if (this.mobileController) {
       this.mobileController.destroy();
       this.mobileController = null;

@@ -24,8 +24,8 @@ ON public.users FOR UPDATE USING (auth.uid() = id);
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, username)
-  VALUES (new.id, new.email, new.raw_user_meta_data->>'username');
+  INSERT INTO public.users (id, email, username, coins)
+  VALUES (new.id, new.email, new.raw_user_meta_data->>'username', 100);
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

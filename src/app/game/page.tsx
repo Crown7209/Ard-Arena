@@ -7,6 +7,8 @@ import { Loader2, RotateCcw, Home } from "lucide-react";
 import { roomService } from "@/services/roomService";
 import { playerService } from "@/services/playerService";
 import { usePlayerStore } from "@/store/playerStore";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import { MoveType } from "@/components/game/mortalkombat/core/moveTypes";
 import { CONFIG } from "@/components/game/mortalkombat/core/config";
 import RotationReminder from "@/components/game/RotationReminder";
@@ -33,10 +35,13 @@ export default function GamePage() {
   const [isMobile, setIsMobile] = useState(false);
 
   const { currentPlayerId } = usePlayerStore();
+  const { user: authUser } = useAuth();
 
   const roundRef = useRef(1);
   const player1WinsRef = useRef(0);
   const player2WinsRef = useRef(0);
+  const player1UserIdRef = useRef<string | null>(null);
+  const player2UserIdRef = useRef<string | null>(null);
 
   const handleRoundEnd = useCallback((loser: any) => {
     const game = getGame();
@@ -85,6 +90,38 @@ export default function GamePage() {
       finalWinnerIndex = newPlayer1Wins > newPlayer2Wins ? 1 : 2;
       setFinalWinner(finalWinnerIndex);
       newGameState = "final-winner";
+      
+      // Update database with win for the winner
+      // Only update if the current user is the winner (each client updates their own wins)
+      const winnerUserId = finalWinnerIndex === 1 ? player1UserIdRef.current : player2UserIdRef.current;
+      const currentUserId = authUser?.id;
+      
+      if (winnerUserId && currentUserId && winnerUserId === currentUserId) {
+        // Fetch current wins and increment
+        supabase
+          .from("users")
+          .select("wins")
+          .eq("id", currentUserId)
+          .single()
+          .then(({ data, error: fetchError }) => {
+            if (!fetchError && data) {
+              const newWins = (data.wins || 0) + 1;
+              supabase
+                .from("users")
+                .update({ wins: newWins })
+                .eq("id", currentUserId)
+                .then(({ error: updateError }) => {
+                  if (updateError) {
+                    console.error("Error updating wins:", updateError);
+                  } else {
+                    console.log("Wins updated successfully:", newWins);
+                  }
+                });
+            } else {
+              console.error("Error fetching current wins:", fetchError);
+            }
+          });
+      }
     } else {
       // Show round winner, then continue to next round
       roundWinnerIndex = winnerIndex;
@@ -107,7 +144,7 @@ export default function GamePage() {
         });
       }
     }
-  }, []);
+  }, [authUser]);
 
   // Detect device orientation and screen size
   useEffect(() => {
@@ -177,6 +214,21 @@ export default function GamePage() {
         const storedHostId = localStorage.getItem("hostId");
         const isHost = room.host_id === storedHostId;
         const playerIndex = isHost ? 0 : 1;
+
+        // Store user IDs for both players
+        // Current user's ID based on their player index
+        if (authUser?.id) {
+          if (playerIndex === 0) {
+            player1UserIdRef.current = authUser.id;
+          } else {
+            player2UserIdRef.current = authUser.id;
+          }
+        }
+
+        // Try to get the other player's user ID from the players list
+        // Note: This assumes players are authenticated and we can get their user IDs
+        // For now, we'll update wins only for the current user when they win
+        // The other player's client will update their own wins when they see the result
 
         setLoading(false);
 
