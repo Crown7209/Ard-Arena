@@ -25,8 +25,10 @@ const Home = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     setMounted(true);
@@ -54,13 +56,29 @@ const Home = () => {
 
   const handleHostGame = async () => {
     setLoading(true);
+
+    // Clear previous session data
+    localStorage.removeItem("playerId");
+    localStorage.removeItem("currentRoomCode");
+    setCurrentPlayerId(null);
+
     const hostId = Math.random().toString(36).substring(7);
     localStorage.setItem("hostId", hostId);
 
     try {
       const room = await roomService.createRoom(hostId);
       if (room) {
-        router.push(`/lobby/${room.code}`);
+        // Join as Host
+        const player = await playerService.joinRoom(room.id, "Host");
+        if (player) {
+          localStorage.setItem("playerId", player.id);
+          setCurrentPlayerId(player.id);
+          // Host is always ready
+          await playerService.toggleReady(player.id, true);
+          router.push(`/lobby/${room.code}`);
+        } else {
+          alert("Failed to join room as host");
+        }
       } else {
         alert("Failed to create room");
       }

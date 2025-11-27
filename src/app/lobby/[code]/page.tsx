@@ -54,9 +54,13 @@ export default function LobbyPage() {
 
   useEffect(() => {
     if (room?.status === "playing") {
-      router.push("/game");
+      // Save room code for game page
+      localStorage.setItem("currentRoomCode", code);
+      router.push(`/game?code=${code}`);
     }
+
   }, [room?.status, router]);
+
   const handleStartGame = async () => {
     if (!roomId) return;
     try {
